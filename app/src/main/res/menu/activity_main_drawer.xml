@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_create_route"
+            android:icon="@drawable/ic_add_black_24dp"
+            android:title="Create Route" />
+        <item
+            android:id="@+id/nav_created_by_me"
+            android:icon="@drawable/ic_person_black_24dp"
+            android:title="Created by me" />
+        <item
+            android:id="@+id/nav_shared_with_me"
+            android:icon="@drawable/ic_people_black_24dp"
+            android:title="Shared with me" />
+
+    </group>
+<group android:checkableBehavior="single" android:id="@+id/two">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_settings_black_24dp"
+            android:title="Settings" />
+        <item
+            android:id="@+id/nav_help"
+            android:icon="@drawable/ic_help_black_24dp"
+            android:title="Help and Feedback" />
+</group>
+</menu>
