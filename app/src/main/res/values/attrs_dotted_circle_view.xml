@@ -1,0 +1,8 @@
+<resources>
+
+    <declare-styleable name="DottedCircleView">
+        <attr name="radius" format="integer" />
+        <attr name="circleColor" format="color" />
+    </declare-styleable>
+
+</resources>

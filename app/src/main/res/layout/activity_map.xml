@@ -1,6 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:toasters="http://schemas.android.com/apk/res-auto"
     map:uiZoomControls="true"
     map:uiZoomGestures="true"
     map:mapType="normal"
@@ -44,6 +45,15 @@
                 android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment" />
         </android.support.v7.widget.CardView>
     </fragment>
+
+    <shareroute.nazib.com.shareroute.DottedCircleView
+        android:id="@+id/dottedCircleView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginLeft="24dp"
+        android:layout_marginRight="24dp"
+        toasters:circleColor="#00FF00"
+        toasters:radius="50"/>
 
     <RelativeLayout
         android:id="@id/fabtoolbar_container"
