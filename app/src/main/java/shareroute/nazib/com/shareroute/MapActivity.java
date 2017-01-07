@@ -4,11 +4,12 @@ import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -22,6 +23,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -34,27 +36,43 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback,
+enum MAP_DRAW_TYPE{
+    DRAW_NONE,
+    DRAW_POINT,
+    DRAW_LINE,
+
+    ALL_TYPES
+}
+
+public class MapActivity extends AppCompatActivity implements
+        OnMapReadyCallback,
         View.OnClickListener,
         GoogleMap.OnCameraMoveStartedListener,
         GoogleMap.OnCameraMoveListener,
         GoogleMap.OnCameraMoveCanceledListener,
         GoogleMap.OnCameraIdleListener,
-        LocationListener{
+        LocationListener,
+        GoogleMap.OnMyLocationButtonClickListener,
+        ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = "[SHARE_ROUTE]";
+    private static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 2;
+    // The minimum distance to change Updates in meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
+    // The minimum time between updates in milliseconds
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1; // 1 minute
     Context context;
     GoogleMap mMap;
+    ArrayList<LatLng> mPoints;
+    Polyline mMovablePolyLine;
     private FABToolbarLayout layout;
     private View one, two, three, four;
     private View fab;
-    ArrayList<LatLng> mPoints;
-    Polyline mMovablePolyLine;
-    private final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
-    // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
-
-    // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1; // 1 minute
+    private boolean mPermissionDenied = false;
+    private ArrayList<Marker> centerMarkerList;
+    private ArrayList<Polyline> mPolyLines;
+    private ArrayList<Marker> mPolyLineMarkers;
+    private MAP_DRAW_TYPE draw_type;
 
 
     @Override
@@ -68,25 +86,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         setContentView(R.layout.activity_map);
         context = this;
         mMap = null;
-        mPoints = new ArrayList<LatLng>();
-
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-//            }
-//        });
-
+        mPoints = new ArrayList<>();
+        centerMarkerList = new ArrayList<>();
+        mPolyLines = new ArrayList<>();
+        mPolyLineMarkers = new ArrayList<>();
+        draw_type = MAP_DRAW_TYPE.DRAW_NONE;
 
         MapFragment mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
-        //
-
-        //
         PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
 
@@ -129,71 +138,183 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     }
 
-    private void drawMarkerOnCenter() {
-        LatLng center = mMap.getCameraPosition().target;
-
-        //float max_zoom = mMap.getMaxZoomLevel();
-
-        mMap.addMarker(new MarkerOptions().position(center)).setVisible(true);
-
-
-    }
-
     @Override
     public void onMapReady(GoogleMap map) {
         mMovablePolyLine = null;
-
         mMap = map;
+
         mMap.setOnCameraIdleListener(this);
         mMap.setOnCameraMoveStartedListener(this);
         mMap.setOnCameraMoveListener(this);
         mMap.setOnCameraMoveCanceledListener(this);
 
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.d(TAG, "Permission not granted");
+        enableMyLocation();
+    }
+
+    /**
+     * Enables the My Location layer if the fine location permission has been granted.
+     */
+    private void enableMyLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission to access the location is missing.
+            PermissionUtils.requestPermission(this, LOCATION_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.ACCESS_FINE_LOCATION, true);
+        } else if (mMap != null) {
+            // Access to the location has been granted to the app.
+            mMap.setMyLocationEnabled(true);
+            moveCameraToCurrentLocation();
+        }
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
             return;
         }
-//        map.setMyLocationEnabled(true);
-//
-//        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-//        Criteria criteria = new Criteria();
-//
-//        Location location = locationManager.getLastKnownLocation(locationManager.getBestProvider(criteria, false));
-//        if (location != null)
-//        {
-//            Log.d(TAG, "lat: "+location.getLatitude()+" long: "+ location.getLongitude());
-//            map.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 13));
-//
-//            CameraPosition cameraPosition = new CameraPosition.Builder()
-//                    .target(new LatLng(location.getLatitude(), location.getLongitude()))      // Sets the center of the map to location user
-//                    .zoom(17)                   // Sets the zoom
-//                    .bearing(90)                // Sets the orientation of the camera to east
-//                    .tilt(40)                   // Sets the tilt of the camera to 30 degrees
-//                    .build();                   // Creates a CameraPosition from the builder
-//            map.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition));
-//        }
 
+        if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.ACCESS_FINE_LOCATION)) {
+            // Enable the my location layer if the permission has been granted.
+            enableMyLocation();
+        } else {
+            // Display the missing permission error dialog when the fragments resume.
+            mPermissionDenied = true;
+        }
+    }
+
+    @Override
+    protected void onResumeFragments() {
+        super.onResumeFragments();
+        if (mPermissionDenied) {
+            // Permission was not granted, display error dialog.
+            showMissingPermissionError();
+            mPermissionDenied = false;
+        }
+    }
+
+    /**
+     * Displays a dialog with error message explaining that the location permission is missing.
+     */
+    private void showMissingPermissionError() {
+        PermissionUtils.PermissionDeniedDialog
+                .newInstance(true).show(getSupportFragmentManager(), "dialog");
     }
 
     @Override
     public void onClick(View view) {
 
-        Toast.makeText(this, "Element clicked", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Element clicked " + view.getId(), Toast.LENGTH_SHORT).show();
+
+        switch (view.getId()){
+            case R.id.one:
+                drawMarkerOnCenter();
+                draw_type = MAP_DRAW_TYPE.DRAW_POINT;
+                break;
+            case R.id.two:
+                drawLinesToCenter();
+                draw_type = MAP_DRAW_TYPE.DRAW_LINE;
+                break;
+            case R.id.three:
+                moveCameraToCurrentLocation();
+                break;
+            case R.id.four:
+                if(draw_type == MAP_DRAW_TYPE.DRAW_POINT){
+                    removeLastMarker();
+                }else if(draw_type == MAP_DRAW_TYPE.DRAW_LINE){
+                removeLastPointOnLine();
+                }
+                break;
+        }
+
 
         //drawMarkerOnCenter();
-        drawLinesToCenter();
+        //drawLinesToCenter();
         //moveCameraToCurrentLocation();
     }
 
 
     private void drawLinesToCenter() {
         LatLng center = mMap.getCameraPosition().target;
-        mMap.addMarker(new MarkerOptions().position(center)).setVisible(true);
+        Marker marker = mMap.addMarker(new MarkerOptions().position(center));
+        marker.setVisible(true);
+        mPolyLineMarkers.add(marker);
+
         mPoints.add(center);
-        mMap.addPolyline(new PolylineOptions().color(Color.RED).addAll(mPoints));
+
+        for(int i=0; i<mPolyLines.size(); i+=1){
+            mPolyLines.get(i).remove();
+        }
+        mPolyLines.clear();
+
+        for(int i=0; i<mPoints.size()-1; i+=1)
+        {
+            Polyline polyline = mMap.addPolyline(new PolylineOptions().color(Color.RED).add(mPoints.get(i), mPoints.get(i+1)));
+            mPolyLines.add(polyline);
+        }
+
+        //mMap.addPolyline(new PolylineOptions().color(Color.RED).addAll(mPoints));
 
     }
+
+    private void drawMarkerOnCenter() {
+        LatLng center = mMap.getCameraPosition().target;
+        //float max_zoom = mMap.getMaxZoomLevel();
+        Marker markerCenter;
+        markerCenter = mMap.addMarker(new MarkerOptions().position(center));
+        markerCenter.setVisible(true);
+        centerMarkerList.add(markerCenter);
+    }
+
+    private void removeLastMarker() {
+        Log.d(TAG, "removeLastMarker");
+        if(!centerMarkerList.isEmpty()){
+            Log.d(TAG, "List not empty");
+            Marker marker = centerMarkerList.get(centerMarkerList.size()-1);
+            if(marker != null) {
+                Log.d(TAG, "Marker not null");
+                marker.remove();
+                centerMarkerList.remove(centerMarkerList.size()-1);
+            }
+        }
+    }
+
+    private void removeLastPointOnLine()
+    {
+        Log.d(TAG, "removeLastMarker");
+
+        if(!mPolyLines.isEmpty()){
+            Polyline polyline = mPolyLines.get(mPolyLines.size()-1);
+            polyline.remove();
+            mPolyLines.remove(mPolyLines.size()-1);
+            if(!mPoints.isEmpty()){
+                mPoints.remove(mPoints.size()-1);
+            }
+        }
+
+        if(!mPoints.isEmpty()) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mPoints.get(mPoints.size() - 1), mMap.getCameraPosition().zoom));
+
+        }
+
+        if(!mPolyLineMarkers.isEmpty() && mPolyLineMarkers.size() >1){
+            Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size()-1);
+            marker.remove();
+            mPolyLineMarkers.remove(mPolyLineMarkers.size()-1);
+
+        }else{
+            if(mPoints.size() == 1){
+                Log.d(TAG, "mPoints size 1");
+                mPoints.remove(mPoints.size()-1);
+                Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size()-1);
+                marker.remove();
+            }
+        }
+    }
+
+
 
     @Override
     public void onCameraMoveStarted(int i) {
@@ -213,7 +334,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onCameraMove() {
         LatLng center = mMap.getCameraPosition().target;
-        //Log.d(TAG, "onCameraChange " + center.toString());
 
         if (mMovablePolyLine != null) {
             mMovablePolyLine.remove();
@@ -221,42 +341,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
         if (!mPoints.isEmpty()) {
             LatLng lastLatLng = mPoints.get(mPoints.size() - 1);
-            //Log.d(TAG, "onCameraChange " + lastLatLng.toString());
             mMovablePolyLine = mMap.addPolyline(new PolylineOptions().color(Color.BLUE).add(center, lastLatLng));
-
         }
     }
 
     private void moveCameraToCurrentLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Log.d(TAG, "Permission not granted");
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION},
-                    MY_PERMISSIONS_REQUEST_LOCATION
-            );
-            return;
-        }
-        mMap.setMyLocationEnabled(true);
 
-
-        // Getting LocationManager object from System Service LOCATION_SERVICE
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-        // Creating a criteria object to retrieve provider
-        Criteria criteria = new Criteria();
-
-        // Getting the name of the best provider
-        String provider = locationManager.getBestProvider(criteria, true);
-
-        // Getting Current Location
-        Location location =/* locationManager.getLastKnownLocation(provider);*/getLocation();
+        Location location = getLocation();
         if (location != null) {
             Log.d(TAG, "location : " + location.toString());
+            if (mMap != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 19));
+            }
         } else {
             Log.d(TAG, "location is null");
         }
-
     }
 
     private Location getLocation() {
@@ -296,7 +395,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         }
                         location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                         if (location != null) {
-                            Log.d(TAG, "location "+location.toString());
+                            Log.d(TAG, "location " + location.toString());
                             latitude = location.getLatitude();
                             longitude = location.getLongitude();
                         }
@@ -328,14 +427,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         return location;
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case MY_PERMISSIONS_REQUEST_LOCATION:
-                Log.d(TAG, "Location Request granted");
-                break;
-        }
-    }
 
     @Override
     public void onLocationChanged(Location location) {
@@ -356,5 +447,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     @Override
     public void onProviderDisabled(String s) {
 
+    }
+
+    @Override
+    public boolean onMyLocationButtonClick() {
+        return false;
     }
 }

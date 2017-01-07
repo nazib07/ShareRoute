@@ -67,8 +67,9 @@ public class DottedCircleView extends View {
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-        canvas.drawCircle(width / 2, height / 2, radius, p);
+        //canvas.drawCircle(width / 2, height / 2, radius, p);
         //draw the map marker in middle of the circle
+
         canvas.drawBitmap(pin.getBitmap(), (width / 2) - pinXOffset, (height / 2) - pinYOffset, null);
         invalidate();
     }
@@ -82,8 +83,8 @@ public class DottedCircleView extends View {
                 DASH_INTERVAL}, (float) 1.0);
         p.setPathEffect(dashPath);
         p.setStyle(Paint.Style.STROKE);
-        pin = (BitmapDrawable) getResources().getDrawable(R.mipmap.ic_launcher);
+        pin = (BitmapDrawable) getResources().getDrawable(R.drawable.ic_plus_16px);
         pinXOffset = pin.getIntrinsicWidth() / 2;
-        pinYOffset = pin.getIntrinsicHeight();
+        pinYOffset = pin.getIntrinsicHeight() / 2;
     }
 }
