@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
@@ -22,8 +23,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
+
+import java.io.File;
+
+import static shareroute.nazib.com.shareroute.FileUtils.createDir;
+import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
+import static shareroute.nazib.com.shareroute.FileUtils.deleteCreatedNewRouteFile;
+import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
+import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteNames;
+import static shareroute.nazib.com.shareroute.FileUtils.readFromFile;
+import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
 
 public class MainActivity extends AppCompatActivity
@@ -43,6 +55,9 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         context = this;
+
+        FileUtils.setContext(context);
+
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -129,6 +144,12 @@ public class MainActivity extends AppCompatActivity
                             // sign in the user ...
                             Intent intent = new Intent(context, MapActivity.class);
                             startActivity(intent);
+                            File file = getCreatedRouteFileObject("test1.geojson");
+//                            String data = readFromFile(file.getAbsolutePath());
+//                            Toast.makeText(context, data, Toast.LENGTH_SHORT).show();
+                            //getCreatedRouteNames();
+                            deleteCreatedNewRouteFile("test2.geojson");
+
                         }
                     })
                     .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
