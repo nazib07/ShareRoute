@@ -31,4 +31,5 @@ dependencies {
     compile 'com.android.support:cardview-v7:23.1.0'
     compile 'com.github.fafaldo:fab-toolbar:1.2.0'
     compile 'com.google.maps.android:android-maps-utils:0.4.4'
+    compile 'com.cocoahero.android:geojson:1.0.1@jar'
 }

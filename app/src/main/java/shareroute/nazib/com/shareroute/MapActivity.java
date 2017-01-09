@@ -13,6 +13,11 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import com.cocoahero.android.geojson.GeometryCollection;
+import com.cocoahero.android.geojson.LineString;
+import com.cocoahero.android.geojson.MultiPoint;
+import com.cocoahero.android.geojson.Position;
+import com.cocoahero.android.geojson.PositionList;
 import com.github.fafaldo.fabtoolbar.widget.FABToolbarLayout;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.places.Place;
@@ -34,7 +39,11 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
+import java.util.Iterator;
 
 enum MAP_DRAW_TYPE{
     DRAW_NONE,
@@ -64,6 +73,7 @@ public class MapActivity extends AppCompatActivity implements
     Context context;
     GoogleMap mMap;
     ArrayList<LatLng> mPoints;
+    ArrayList<LatLng> mCenterPoints;
     Polyline mMovablePolyLine;
     private FABToolbarLayout layout;
     private View one, two, three, four;
@@ -87,6 +97,7 @@ public class MapActivity extends AppCompatActivity implements
         context = this;
         mMap = null;
         mPoints = new ArrayList<>();
+        mCenterPoints = new ArrayList<>();
         centerMarkerList = new ArrayList<>();
         mPolyLines = new ArrayList<>();
         mPolyLineMarkers = new ArrayList<>();
@@ -218,7 +229,8 @@ public class MapActivity extends AppCompatActivity implements
                 draw_type = MAP_DRAW_TYPE.DRAW_LINE;
                 break;
             case R.id.three:
-                moveCameraToCurrentLocation();
+                //moveCameraToCurrentLocation();
+                saveMapData(null);
                 break;
             case R.id.four:
                 if(draw_type == MAP_DRAW_TYPE.DRAW_POINT){
@@ -266,6 +278,7 @@ public class MapActivity extends AppCompatActivity implements
         markerCenter = mMap.addMarker(new MarkerOptions().position(center));
         markerCenter.setVisible(true);
         centerMarkerList.add(markerCenter);
+        mCenterPoints.add(center);
     }
 
     private void removeLastMarker() {
@@ -277,6 +290,9 @@ public class MapActivity extends AppCompatActivity implements
                 Log.d(TAG, "Marker not null");
                 marker.remove();
                 centerMarkerList.remove(centerMarkerList.size()-1);
+                if(!mCenterPoints.isEmpty()) {
+                    mCenterPoints.remove(mCenterPoints.size() - 1);
+                }
             }
         }
     }
@@ -314,6 +330,54 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
+    private void loadMapData(String filepath){
+
+    }
+
+    private void saveMapData(String filepath){
+        if(mPoints.isEmpty()){
+            return;
+        }
+
+        JSONObject mapObjects;
+
+        ArrayList<Position> polyLineMarkerPositionList = new ArrayList<>();
+        ArrayList<Position> centerMarkerPositionList = new ArrayList<>();
+
+        for(LatLng latLng:mPoints){
+            Position position = new Position(latLng.latitude, latLng.longitude);
+            polyLineMarkerPositionList.add(position);
+        }
+
+        for(LatLng latLng:mCenterPoints){
+            Position position = new Position(latLng.latitude, latLng.longitude);
+            centerMarkerPositionList.add(position);
+        }
+
+
+        GeometryCollection geometryCollection = new GeometryCollection();
+
+        MultiPoint markerpoints = new MultiPoint();
+        markerpoints.setPositions(centerMarkerPositionList);
+
+        MultiPoint multiPoint = new MultiPoint();
+        multiPoint.setPositions(polyLineMarkerPositionList);
+
+        LineString lineString = new LineString();
+        lineString.setPositions(polyLineMarkerPositionList);
+
+        geometryCollection.addGeometry(markerpoints);
+        geometryCollection.addGeometry(multiPoint);
+        geometryCollection.addGeometry(lineString);
+
+        try {
+            mapObjects = geometryCollection.toJSON();
+
+            Log.d(TAG, mapObjects.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
 
     @Override

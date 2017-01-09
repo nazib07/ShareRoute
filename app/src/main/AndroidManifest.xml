@@ -34,7 +34,7 @@
         </activity>
         <activity
             android:name=".MapActivity"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            />
         <activity
             android:name=".DetailsActivity"
             android:label="Route details"
