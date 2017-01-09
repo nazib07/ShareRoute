@@ -37,7 +37,7 @@
                 <action android:name="android.intent.action.EDIT"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:pathPattern="*.geojson"/>
-                <data android:mimeType="text/geojson"/>
+                <data android:mimeType="*/*"/>
             </intent-filter>
         </activity>
         <activity
