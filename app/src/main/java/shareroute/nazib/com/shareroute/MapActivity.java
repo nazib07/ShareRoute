@@ -42,8 +42,12 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
+import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
 enum MAP_DRAW_TYPE{
     DRAW_NONE,
@@ -339,7 +343,7 @@ public class MapActivity extends AppCompatActivity implements
             return;
         }
 
-        JSONObject mapObjects;
+        JSONObject mapObjects = null;
 
         ArrayList<Position> polyLineMarkerPositionList = new ArrayList<>();
         ArrayList<Position> centerMarkerPositionList = new ArrayList<>();
@@ -376,6 +380,11 @@ public class MapActivity extends AppCompatActivity implements
             Log.d(TAG, mapObjects.toString());
         } catch (JSONException e) {
             e.printStackTrace();
+        }
+
+        if(mapObjects != null) {
+            File file = getCreatedRouteFileObject("test1.geojson");
+            writeToFile(file.getAbsolutePath(), mapObjects.toString());
         }
     }
 

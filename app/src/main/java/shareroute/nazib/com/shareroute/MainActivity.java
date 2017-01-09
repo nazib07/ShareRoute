@@ -144,11 +144,12 @@ public class MainActivity extends AppCompatActivity
                             // sign in the user ...
                             Intent intent = new Intent(context, MapActivity.class);
                             startActivity(intent);
-                            File file = getCreatedRouteFileObject("test1.geojson");
+                            createNewRouteFile("test1.geojson");
+                            //File file = getCreatedRouteFileObject("test1.geojson");
 //                            String data = readFromFile(file.getAbsolutePath());
 //                            Toast.makeText(context, data, Toast.LENGTH_SHORT).show();
                             //getCreatedRouteNames();
-                            deleteCreatedNewRouteFile("test2.geojson");
+                            //deleteCreatedNewRouteFile("test2.geojson");
 
                         }
                     })
