@@ -18,17 +18,12 @@ import android.widget.ListView;
 
 import java.util.ArrayList;
 
+import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteNames;
+
 /**
  * Created by nazib on 11/28/2016.
  */
 public class TestListFragment extends Fragment {
-
-    ListView lv;
-    Context context;
-
-    ArrayList prgmName;
-    public static String [] prgmNameList={"Polashi - Nilkhet","Nilkhet - Karwan bazar","Bangla Motor - shahbag","Shahbag - Polashi","Polashi - Katabon","Nilkhet - Katabon","Katabon - Kathalbagan","Kathalbagan - Panthapath","Panthapath - Farmgate"};
-
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -37,8 +32,12 @@ public class TestListFragment extends Fragment {
         View v = inflater.inflate(R.layout.fragment_list_demo, container, false);
         ListView lstItems = (ListView)v.findViewById(R.id.listView);
 
-        CustomAdapter adapter = new CustomAdapter(this, prgmNameList);
-        lstItems.setAdapter(adapter);
+        ArrayList<String> createdRouteNames;
+        createdRouteNames = getCreatedRouteNames();
+        if(!createdRouteNames.isEmpty()){
+            CustomAdapter adapter = new CustomAdapter(this, createdRouteNames);
+            lstItems.setAdapter(adapter);
+        }
         return v;
     }
     @Override

@@ -10,6 +10,9 @@ import android.widget.Toast;
  */
 
 public class CommonUtils {
+    public final static String SELECTED_ROUTE_FILE_NAME =  "SELECTED_ROUTE_FILE_NAME";
+
+
     public static void createAlert(final Context context, String message){
         AlertDialog alertDialog = new AlertDialog.Builder(
                 context).create();

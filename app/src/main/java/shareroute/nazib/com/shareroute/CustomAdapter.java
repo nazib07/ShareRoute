@@ -4,8 +4,6 @@ package shareroute.nazib.com.shareroute;
  * Created by Home on 12/2/2016.
  */
 
-import android.app.Activity;
-import android.app.Fragment;
 import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
@@ -17,12 +15,15 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+
 public class CustomAdapter extends BaseAdapter{
-    String [] result;
+    ArrayList<String> result;
     Context context;
     int [] imageId;
     private static LayoutInflater inflater=null;
-    public CustomAdapter(TestListFragment mainActivity, String[] prgmNameList/*, int[] prgmImages*/) {
+    public CustomAdapter(TestListFragment mainActivity, ArrayList<String> prgmNameList/*, int[] prgmImages*/) {
         // TODO Auto-generated constructor stub
         result=prgmNameList;
         context=mainActivity.getActivity().getBaseContext();
@@ -33,7 +34,7 @@ public class CustomAdapter extends BaseAdapter{
     @Override
     public int getCount() {
         // TODO Auto-generated method stub
-        return result.length;
+        return result.size();
     }
 
     @Override
@@ -63,14 +64,15 @@ public class CustomAdapter extends BaseAdapter{
         holder.tv=(TextView) rowView.findViewById(R.id.textView1);
         holder.img=(ImageView) rowView.findViewById(R.id.imageView1);
         holder.btn_details =(ImageButton) rowView.findViewById(R.id.imageButton1);
-        holder.tv.setText(result[position]);
+        holder.tv.setText(result.get(position));
         //holder.img.setImageResource(imageId[position]);
         rowView.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                Toast.makeText(context, "You Clicked "+result[position], Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "You Clicked "+result.get(position), Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(context, MapActivity.class);
+                intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, result.get(position));
                 context.startActivity(intent);
             }
         });
@@ -79,7 +81,7 @@ public class CustomAdapter extends BaseAdapter{
 
             @Override
             public void onClick(View v) {
-                Toast.makeText(context, "details "+result[position], Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "details "+result.get(position), Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(context, DetailsActivity.class);
                 context.startActivity(intent);
             }

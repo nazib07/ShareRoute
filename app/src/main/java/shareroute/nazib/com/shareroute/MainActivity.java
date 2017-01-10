@@ -1,6 +1,7 @@
 package shareroute.nazib.com.shareroute;
 
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -23,6 +24,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -136,21 +138,29 @@ public class MainActivity extends AppCompatActivity
             LayoutInflater inflater = this.getLayoutInflater();
             // Inflate and set the layout for the dialog
             // Pass null as the parent view because its going in the dialog layout
-            builder.setView(inflater.inflate(R.layout.dialog_input_route_name, null))
+            final View textEntryView = inflater.inflate(R.layout.dialog_input_route_name, null);
+            builder.setView(textEntryView)
                     // Add action buttons
                     .setPositiveButton("ok", new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int id) {
                             // sign in the user ...
-                            Intent intent = new Intent(context, MapActivity.class);
-                            startActivity(intent);
-                            createNewRouteFile("test1.geojson");
-                            //File file = getCreatedRouteFileObject("test1.geojson");
-//                            String data = readFromFile(file.getAbsolutePath());
-//                            Toast.makeText(context, data, Toast.LENGTH_SHORT).show();
-                            //getCreatedRouteNames();
-                            //deleteCreatedNewRouteFile("test2.geojson");
+                            try {
 
+                                EditText editText = (EditText) textEntryView.findViewById(R.id.username);
+
+                                String route_name;
+                                route_name = editText.getText().toString();
+                                if(route_name.length() > 0){
+                                    createNewRouteFile(route_name+".geojson");
+                                    Intent intent = new Intent(context, MapActivity.class);
+                                    startActivity(intent);
+                                }
+
+                                }
+                            catch (Exception e){
+                                    e.printStackTrace();
+                            }
                         }
                     })
                     .setNegativeButton("cancel", new DialogInterface.OnClickListener() {

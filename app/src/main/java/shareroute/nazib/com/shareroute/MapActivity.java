@@ -2,6 +2,7 @@ package shareroute.nazib.com.shareroute;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -13,6 +14,9 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+import com.cocoahero.android.geojson.GeoJSON;
+import com.cocoahero.android.geojson.GeoJSONObject;
+import com.cocoahero.android.geojson.Geometry;
 import com.cocoahero.android.geojson.GeometryCollection;
 import com.cocoahero.android.geojson.LineString;
 import com.cocoahero.android.geojson.MultiPoint;
@@ -32,6 +36,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.maps.android.geojson.GeoJsonLayer;
 
 import android.util.Log;
 import android.view.View;
@@ -39,6 +44,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -47,6 +53,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
+import static shareroute.nazib.com.shareroute.FileUtils.readFromFile;
 import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
 enum MAP_DRAW_TYPE{
@@ -88,6 +95,8 @@ public class MapActivity extends AppCompatActivity implements
     private ArrayList<Marker> mPolyLineMarkers;
     private MAP_DRAW_TYPE draw_type;
 
+    private String incomingFileName;
+    private static boolean mIsDrawMovableLine;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,7 +105,6 @@ public class MapActivity extends AppCompatActivity implements
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
         setContentView(R.layout.activity_map);
         context = this;
         mMap = null;
@@ -106,14 +114,13 @@ public class MapActivity extends AppCompatActivity implements
         mPolyLines = new ArrayList<>();
         mPolyLineMarkers = new ArrayList<>();
         draw_type = MAP_DRAW_TYPE.DRAW_NONE;
+        mIsDrawMovableLine = false;
 
         MapFragment mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
-
         PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.place_autocomplete_fragment);
-
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(Place place) {
@@ -151,6 +158,17 @@ public class MapActivity extends AppCompatActivity implements
             }
         });
 
+        ////////////Handle incoming intents////////////////
+        incomingFileName = null;
+        Intent intent = getIntent();
+        incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
+        if(incomingFileName != null){
+            incomingFileName += ".geojson";
+
+            loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
+        }
+        Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
+
     }
 
     @Override
@@ -164,6 +182,19 @@ public class MapActivity extends AppCompatActivity implements
         mMap.setOnCameraMoveCanceledListener(this);
 
         enableMyLocation();
+
+
+        //
+        clearAllMarkersOnPoint();
+        drawMarkersOnPoint();
+
+        clearAllMarkersOnPolyline();
+        clearAllPolylines();
+
+        drawMarkersOnPolyline();
+        drawPolyLines();
+        //
+
     }
 
     /**
@@ -234,7 +265,9 @@ public class MapActivity extends AppCompatActivity implements
                 break;
             case R.id.three:
                 //moveCameraToCurrentLocation();
-                saveMapData(null);
+                if(incomingFileName != null){
+                    saveMapData(incomingFileName);
+                }
                 break;
             case R.id.four:
                 if(draw_type == MAP_DRAW_TYPE.DRAW_POINT){
@@ -245,44 +278,30 @@ public class MapActivity extends AppCompatActivity implements
                 break;
         }
 
-
-        //drawMarkerOnCenter();
-        //drawLinesToCenter();
-        //moveCameraToCurrentLocation();
     }
 
 
     private void drawLinesToCenter() {
+        mIsDrawMovableLine = true;
         LatLng center = mMap.getCameraPosition().target;
-        Marker marker = mMap.addMarker(new MarkerOptions().position(center));
-        marker.setVisible(true);
-        mPolyLineMarkers.add(marker);
 
         mPoints.add(center);
 
-        for(int i=0; i<mPolyLines.size(); i+=1){
-            mPolyLines.get(i).remove();
-        }
-        mPolyLines.clear();
+        clearAllMarkersOnPolyline();
+        clearAllPolylines();
 
-        for(int i=0; i<mPoints.size()-1; i+=1)
-        {
-            Polyline polyline = mMap.addPolyline(new PolylineOptions().color(Color.RED).add(mPoints.get(i), mPoints.get(i+1)));
-            mPolyLines.add(polyline);
-        }
-
-        //mMap.addPolyline(new PolylineOptions().color(Color.RED).addAll(mPoints));
+        drawMarkersOnPolyline();
+        drawPolyLines();
 
     }
 
     private void drawMarkerOnCenter() {
+        mIsDrawMovableLine = false;
         LatLng center = mMap.getCameraPosition().target;
         //float max_zoom = mMap.getMaxZoomLevel();
-        Marker markerCenter;
-        markerCenter = mMap.addMarker(new MarkerOptions().position(center));
-        markerCenter.setVisible(true);
-        centerMarkerList.add(markerCenter);
         mCenterPoints.add(center);
+        clearAllMarkersOnPoint();
+        drawMarkersOnPoint();
     }
 
     private void removeLastMarker() {
@@ -335,7 +354,155 @@ public class MapActivity extends AppCompatActivity implements
     }
 
     private void loadMapData(String filepath){
+        String strContent = readFromFile(filepath);
+        GeoJSONObject geoJSON = null;
+        JSONObject jsonObject = null;
+        ArrayList<LatLng> markersLatLng = new ArrayList<>();
+        ArrayList<LatLng> markersPolylineLatLng = new ArrayList<>();
 
+        Log.d(TAG, "STRING CONTENT : " + strContent);
+
+        try {
+            geoJSON = GeoJSON.parse(strContent);
+            GeometryCollection geometryCollection = new GeometryCollection(geoJSON.toJSON());
+            ArrayList<Geometry> geometries = new ArrayList<>(geometryCollection.getGeometries());
+
+            MultiPoint markerpoints = (MultiPoint) geometries.get(0);
+           //Log.d(TAG, "markerpoints : " + markerpoints.getPositions().toString());
+            MultiPoint multiPoint = (MultiPoint) geometries.get(1);
+            //Log.d(TAG, "multiPoint : " + multiPoint.getPositions().toString());
+            LineString lineString = (LineString) geometries.get(2);
+            //Log.d(TAG, "lineString : " + lineString.getPositions().toString());
+
+
+            for(Position position : markerpoints.getPositions()){
+                LatLng latLng = new LatLng(position.getLatitude(), position.getLongitude());
+                markersLatLng.add(latLng);
+            }
+
+            for(Position position : multiPoint.getPositions()){
+                LatLng latLng = new LatLng(position.getLatitude(), position.getLongitude());
+                markersPolylineLatLng.add(latLng);
+            }
+
+            Log.d(TAG, "markersPolylineLatLng " + markersPolylineLatLng.toString());
+            Log.d(TAG, "markersLatLng " + markersLatLng.toString());
+
+            mPoints.clear();
+            mCenterPoints.clear();
+
+            for(LatLng latLng : markersPolylineLatLng){
+                mPoints.add(latLng);
+            }
+            for(LatLng latLng : markersLatLng){
+                mCenterPoints.add(latLng);
+            }
+
+//            for(LatLng latLng : markersPolylineLatLng){
+//                mMap.addMarker(new MarkerOptions().position(latLng));
+//            }
+
+
+
+//            jsonObject = geoJSON.toJSON();
+//            Log.d(TAG, "1...................");
+//
+//            JSONArray geometriesArray = jsonObject.getJSONArray("geometries");
+//            for (int i = 0; i < geometriesArray.length(); i++) {
+//                JSONObject jsonobject = geometriesArray.getJSONObject(i);
+//                String type = jsonobject.getString("type");
+//                Log.d(TAG, "GEOMETRY TYPE " + type);
+//            }
+
+        }
+        catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+//        try {
+//            GeoJsonLayer layer = new GeoJsonLayer(mMap, geoJSON.toJSON());
+//            layer.addLayerToMap();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+    }
+
+
+    private  void clearAllMarkersOnPoint(){
+        for(int i=0; i<centerMarkerList.size(); i++){
+            centerMarkerList.get(i).remove();
+        }
+        centerMarkerList.clear();
+    }
+
+    private  void clearAllMarkersOnPolyline(){
+        for(int i=0; i<mPolyLineMarkers.size(); i++){
+            mPolyLineMarkers.get(i).remove();
+        }
+        mPolyLineMarkers.clear();
+    }
+
+    private  void clearAllPolylines(){
+        for(int i=0; i<mPolyLines.size(); i++){
+            mPolyLines.get(i).remove();
+        }
+        mPolyLines.clear();
+    }
+
+    private void drawMarkersOnPoint(){
+        if(mCenterPoints == null){
+            Log.d(TAG, "mCenterPoints is null");
+            return;
+        }
+        if(!mCenterPoints.isEmpty()){
+            for(LatLng latLng : mCenterPoints){
+                Marker marker = drawMarkerAtLatLng(latLng);
+                centerMarkerList.add(marker);
+            }
+        }
+    }
+
+    private void drawMarkersOnPolyline(){
+        if(mPoints == null){
+            Log.d(TAG, "mPoints is null");
+            return;
+        }
+        if(!mPoints.isEmpty()){
+            for(LatLng latLng : mPoints){
+                Marker marker = drawMarkerAtLatLng(latLng);
+                mPolyLineMarkers.add(marker);
+            }
+        }
+    }
+
+    private void drawPolyLines(){
+        if(mPoints == null){
+            Log.d(TAG, "mPoints is null");
+            return;
+        }
+        for(int i=0; i<mPoints.size()-1; i+=1)
+        {
+            Polyline polyline = drawPolyLineAt(mPoints.get(i), mPoints.get(i+1));
+            mPolyLines.add(polyline);
+        }
+    }
+
+
+    private Polyline drawPolyLineAt(LatLng start, LatLng end){
+        Polyline polyline = null;
+        if(mMap != null){
+            polyline = mMap.addPolyline(new PolylineOptions().color(Color.RED).add(start, end));
+        }
+        return polyline;
+    }
+
+    private Marker drawMarkerAtLatLng(LatLng latLng){
+        Marker marker = null;
+        if(mMap != null){
+            marker = mMap.addMarker(new MarkerOptions().position(latLng));
+            marker.setVisible(true);
+        }
+        return marker;
     }
 
     private void saveMapData(String filepath){
@@ -383,7 +550,7 @@ public class MapActivity extends AppCompatActivity implements
         }
 
         if(mapObjects != null) {
-            File file = getCreatedRouteFileObject("test1.geojson");
+            File file = getCreatedRouteFileObject(filepath);
             writeToFile(file.getAbsolutePath(), mapObjects.toString());
         }
     }
@@ -406,6 +573,12 @@ public class MapActivity extends AppCompatActivity implements
 
     @Override
     public void onCameraMove() {
+        if(mIsDrawMovableLine){
+            drawMovableLine();
+        }
+    }
+
+    private void drawMovableLine() {
         LatLng center = mMap.getCameraPosition().target;
 
         if (mMovablePolyLine != null) {
