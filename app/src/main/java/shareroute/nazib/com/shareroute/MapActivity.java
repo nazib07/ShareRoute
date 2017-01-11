@@ -1,16 +1,26 @@
 package shareroute.nazib.com.shareroute;
 
 import android.Manifest;
+import android.annotation.TargetApi;
+import android.content.ContentUris;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -36,23 +46,33 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
-import com.google.maps.android.geojson.GeoJsonLayer;
+
 
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
+import android.support.v7.widget.Toolbar;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
+import static shareroute.nazib.com.shareroute.FileUtils.createSharedRouteFile;
 import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
+import static shareroute.nazib.com.shareroute.FileUtils.getSharedRouteFileObject;
 import static shareroute.nazib.com.shareroute.FileUtils.readFromFile;
 import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
@@ -60,8 +80,6 @@ enum MAP_DRAW_TYPE{
     DRAW_NONE,
     DRAW_POINT,
     DRAW_LINE,
-
-    ALL_TYPES
 }
 
 public class MapActivity extends AppCompatActivity implements
@@ -77,6 +95,7 @@ public class MapActivity extends AppCompatActivity implements
     private static final String TAG = "[SHARE_ROUTE]";
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 2;
+    private static final int WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST_CODE = 3;
     // The minimum distance to change Updates in meters
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
     // The minimum time between updates in milliseconds
@@ -97,6 +116,10 @@ public class MapActivity extends AppCompatActivity implements
 
     private String incomingFileName;
     private static boolean mIsDrawMovableLine;
+    private Intent mExternalDataIntent;
+    private MenuItem item;
+    private Menu mOptionsMenu;
+    private boolean isSharedFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +162,9 @@ public class MapActivity extends AppCompatActivity implements
             }
         });
 
+        Toolbar toolbar = (Toolbar) findViewById(R.id.map_toolbar);
+        setSupportActionBar(toolbar);
+
         layout = (FABToolbarLayout) findViewById(R.id.fabtoolbar);
         one = findViewById(R.id.one);
         two = findViewById(R.id.two);
@@ -155,19 +181,139 @@ public class MapActivity extends AppCompatActivity implements
             @Override
             public void onClick(View v) {
                 layout.show();
+                item.setVisible(true);
             }
         });
 
         ////////////Handle incoming intents////////////////
         incomingFileName = null;
         Intent intent = getIntent();
-        incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
-        if(incomingFileName != null){
-            incomingFileName += ".geojson";
+        String intentAction = intent.getAction();
 
-            loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
+        Log.d(TAG, "intent= "+ intent);
+
+
+        if(CommonUtils.INTENT_ACTION_CUSTOM_1.equals(intentAction)) {
+            Log.d(TAG, "Created Route Intent");
+            incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
+            if (incomingFileName != null) {
+                try {
+                    getSupportActionBar().setTitle(incomingFileName);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                isSharedFile = false;
+                incomingFileName += ".geojson";
+
+                loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
+            }
+            Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
         }
-        Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
+        else if(CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)) {
+            Log.d(TAG, "Shared Route Intent");
+            incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
+            if (incomingFileName != null) {
+                try {
+                    getSupportActionBar().setTitle(incomingFileName);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                isSharedFile = false;
+                incomingFileName += ".geojson";
+
+                Log.d(TAG, "shared filename : " + incomingFileName);
+
+                loadMapData(getSharedRouteFileObject(incomingFileName).getAbsolutePath());
+            }
+        }
+        else if (Intent.ACTION_VIEW.equals(intentAction)) {
+
+            if (intent!=null){
+                mExternalDataIntent = intent;
+
+                ////////////////////////////////////////////////////
+                isSharedFile = true;
+                showSaveDialog();
+                loadDataFromExternalFile(intent);
+                ///////////////////////////////////////////////////
+            }
+        }
+    }
+
+    private void showSaveDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Get the layout inflater
+        LayoutInflater inflater = this.getLayoutInflater();
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        final View textEntryView = inflater.inflate(R.layout.dialog_input_route_name, null);
+        TextView textview = (TextView) textEntryView.findViewById(R.id.textView);
+        textview.setText("Save Route?");
+        builder.setView(textEntryView)
+                // Add action buttons
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        // sign in the user ...
+                        try {
+
+                            EditText editText = (EditText) textEntryView.findViewById(R.id.username);
+
+                            String route_name;
+                            route_name = editText.getText().toString();
+                            if (route_name.length() > 0) {
+                                incomingFileName = route_name+".geojson";
+                                createSharedRouteFile(incomingFileName);
+                            }
+                            else {
+                                //onBackPressed();
+                            }
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        //onBackPressed();
+                    }
+                }).create().show();
+    }
+
+
+    private void loadDataFromExternalFile(Intent intent) {
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            // Permission to access the location is missing.
+            PermissionUtils.requestPermission(this, WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST_CODE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
+        }else {
+            Uri uri = intent.getData();
+            String sharedFileName = getPath(context, uri);
+            Log.d(TAG, "uri= " + getPath(context, uri));
+            loadMapData(sharedFileName);
+
+            //
+            if(mMap!=null) {
+                clearAllMarkersOnPoint();
+                drawMarkersOnPoint();
+
+                clearAllMarkersOnPolyline();
+                clearAllPolylines();
+
+                drawMarkersOnPolyline();
+                drawPolyLines();
+            }
+            //
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        //    finish();
 
     }
 
@@ -182,7 +328,6 @@ public class MapActivity extends AppCompatActivity implements
         mMap.setOnCameraMoveCanceledListener(this);
 
         enableMyLocation();
-
 
         //
         clearAllMarkersOnPoint();
@@ -201,6 +346,7 @@ public class MapActivity extends AppCompatActivity implements
      * Enables the My Location layer if the fine location permission has been granted.
      */
     private void enableMyLocation() {
+        Log.d(TAG, "enableMyLocation....");
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission to access the location is missing.
@@ -217,15 +363,17 @@ public class MapActivity extends AppCompatActivity implements
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
-            return;
-        }
-
+        Log.d(TAG, "onRequestPermissionsResult.........");
+//
         if (PermissionUtils.isPermissionGranted(permissions, grantResults,
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
             // Enable the my location layer if the permission has been granted.
             enableMyLocation();
-        } else {
+        }else if(PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+            loadDataFromExternalFile(mExternalDataIntent);
+        }
+        else {
             // Display the missing permission error dialog when the fragments resume.
             mPermissionDenied = true;
         }
@@ -264,10 +412,7 @@ public class MapActivity extends AppCompatActivity implements
                 draw_type = MAP_DRAW_TYPE.DRAW_LINE;
                 break;
             case R.id.three:
-                //moveCameraToCurrentLocation();
-                if(incomingFileName != null){
-                    saveMapData(incomingFileName);
-                }
+                moveCameraToCurrentLocation();
                 break;
             case R.id.four:
                 if(draw_type == MAP_DRAW_TYPE.DRAW_POINT){
@@ -354,9 +499,9 @@ public class MapActivity extends AppCompatActivity implements
     }
 
     private void loadMapData(String filepath){
+        Log.d(TAG, "loadMapData "+ filepath);
         String strContent = readFromFile(filepath);
         GeoJSONObject geoJSON = null;
-        JSONObject jsonObject = null;
         ArrayList<LatLng> markersLatLng = new ArrayList<>();
         ArrayList<LatLng> markersPolylineLatLng = new ArrayList<>();
 
@@ -368,12 +513,7 @@ public class MapActivity extends AppCompatActivity implements
             ArrayList<Geometry> geometries = new ArrayList<>(geometryCollection.getGeometries());
 
             MultiPoint markerpoints = (MultiPoint) geometries.get(0);
-           //Log.d(TAG, "markerpoints : " + markerpoints.getPositions().toString());
             MultiPoint multiPoint = (MultiPoint) geometries.get(1);
-            //Log.d(TAG, "multiPoint : " + multiPoint.getPositions().toString());
-            LineString lineString = (LineString) geometries.get(2);
-            //Log.d(TAG, "lineString : " + lineString.getPositions().toString());
-
 
             for(Position position : markerpoints.getPositions()){
                 LatLng latLng = new LatLng(position.getLatitude(), position.getLongitude());
@@ -398,33 +538,11 @@ public class MapActivity extends AppCompatActivity implements
                 mCenterPoints.add(latLng);
             }
 
-//            for(LatLng latLng : markersPolylineLatLng){
-//                mMap.addMarker(new MarkerOptions().position(latLng));
-//            }
-
-
-
-//            jsonObject = geoJSON.toJSON();
-//            Log.d(TAG, "1...................");
-//
-//            JSONArray geometriesArray = jsonObject.getJSONArray("geometries");
-//            for (int i = 0; i < geometriesArray.length(); i++) {
-//                JSONObject jsonobject = geometriesArray.getJSONObject(i);
-//                String type = jsonobject.getString("type");
-//                Log.d(TAG, "GEOMETRY TYPE " + type);
-//            }
-
         }
         catch (JSONException e) {
             e.printStackTrace();
         }
 
-//        try {
-//            GeoJsonLayer layer = new GeoJsonLayer(mMap, geoJSON.toJSON());
-//            layer.addLayerToMap();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
     }
 
 
@@ -550,8 +668,14 @@ public class MapActivity extends AppCompatActivity implements
         }
 
         if(mapObjects != null) {
-            File file = getCreatedRouteFileObject(filepath);
-            writeToFile(file.getAbsolutePath(), mapObjects.toString());
+            File file;
+            if(!isSharedFile) {
+                file = getCreatedRouteFileObject(filepath);
+                writeToFile(file.getAbsolutePath(), mapObjects.toString());
+            }else if(isSharedFile) {
+                file = getSharedRouteFileObject(filepath);
+                writeToFile(file.getAbsolutePath(), mapObjects.toString());
+            }
         }
     }
 
@@ -699,4 +823,163 @@ public class MapActivity extends AppCompatActivity implements
     public boolean onMyLocationButtonClick() {
         return false;
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_done, menu);
+        mOptionsMenu = menu;
+        item = mOptionsMenu.findItem(R.id.action_menu_done);
+        item.setVisible(false);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_menu_done:
+                Log.d(TAG, "Done button clicked.......");
+                if(incomingFileName != null){
+                    saveMapData(incomingFileName);
+                    layout.hide();
+                    item.setVisible(false);
+                }
+                break;
+
+        }
+        return  true;
+    }
+
+
+    /////////////////////////
+    /**
+     * Get a file path from a Uri. This will get the the path for Storage Access
+     * Framework Documents, as well as the _data field for the MediaStore and
+     * other file-based ContentProviders.
+     *
+     * @param context The context.
+     * @param uri The Uri to query.
+     * @author paulburke
+     */
+    @TargetApi(Build.VERSION_CODES.KITKAT)
+    public static String getPath(final Context context, final Uri uri) {
+
+        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+
+        // DocumentProvider
+        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
+            // ExternalStorageProvider
+            if (isExternalStorageDocument(uri)) {
+                final String docId = DocumentsContract.getDocumentId(uri);
+                final String[] split = docId.split(":");
+                final String type = split[0];
+
+                if ("primary".equalsIgnoreCase(type)) {
+                    return Environment.getExternalStorageDirectory() + "/" + split[1];
+                }
+
+                // TODO handle non-primary volumes
+            }
+            // DownloadsProvider
+            else if (isDownloadsDocument(uri)) {
+
+                final String id = DocumentsContract.getDocumentId(uri);
+                final Uri contentUri = ContentUris.withAppendedId(
+                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+
+                return getDataColumn(context, contentUri, null, null);
+            }
+            // MediaProvider
+            else if (isMediaDocument(uri)) {
+                final String docId = DocumentsContract.getDocumentId(uri);
+                final String[] split = docId.split(":");
+                final String type = split[0];
+
+                Uri contentUri = null;
+                if ("image".equals(type)) {
+                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                } else if ("video".equals(type)) {
+                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                } else if ("audio".equals(type)) {
+                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                }
+
+                final String selection = "_id=?";
+                final String[] selectionArgs = new String[] {
+                        split[1]
+                };
+
+                return getDataColumn(context, contentUri, selection, selectionArgs);
+            }
+        }
+        // MediaStore (and general)
+        else if ("content".equalsIgnoreCase(uri.getScheme())) {
+            return getDataColumn(context, uri, null, null);
+        }
+        // File
+        else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the value of the data column for this Uri. This is useful for
+     * MediaStore Uris, and other file-based ContentProviders.
+     *
+     * @param context The context.
+     * @param uri The Uri to query.
+     * @param selection (Optional) Filter used in the query.
+     * @param selectionArgs (Optional) Selection arguments used in the query.
+     * @return The value of the _data column, which is typically a file path.
+     */
+    public static String getDataColumn(Context context, Uri uri, String selection,
+                                       String[] selectionArgs) {
+
+        Cursor cursor = null;
+        final String column = "_data";
+        final String[] projection = {
+                column
+        };
+
+        try {
+            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
+            if (cursor != null && cursor.moveToFirst()) {
+                final int column_index = cursor.getColumnIndexOrThrow(column);
+                return cursor.getString(column_index);
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return null;
+    }
+
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is MediaProvider.
+     */
+    public static boolean isMediaDocument(Uri uri) {
+        return "com.android.providers.media.documents".equals(uri.getAuthority());
+    }
+    //////////////////////////
+
 }

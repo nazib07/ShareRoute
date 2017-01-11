@@ -109,6 +109,73 @@ public class FileUtils {
         return namelist;
     }
 
+    ///////////////////////////////////Share Route Dir/////////////////////////////
+
+
+    public static File createSharedRouteFile(String filename){
+        File folder = createDirInsideExternalAppDir("SharedRoute");
+        File file = new File(folder.getAbsolutePath(), filename);
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }else {
+            createAlert(context, "Route already exist, choose different name");
+        }
+
+        return file;
+    }
+
+    public static void deleteSharedNewRouteFile(String filename){
+        ArrayList<File> filelist = getSharedRouteFileList();
+        for(File file : filelist){
+            if(file.getName().equals(filename)){
+                file.delete();
+            }
+        }
+    }
+
+    public static File getSharedRouteFileObject(String filename) {
+        File folder = createDirInsideExternalAppDir("SharedRoute");
+        return new File(folder.getAbsolutePath(), filename);
+    }
+
+    public static ArrayList<File> getSharedRouteFileList(){
+        ArrayList<File> filelist = new ArrayList<>();
+        File folder = createDirInsideExternalAppDir("SharedRoute");
+
+        File[] files = folder.listFiles();
+
+        for (File file : files)
+        {
+            if(file.getName().endsWith(".geojson"))
+            {
+                filelist.add(file);
+            }
+        }
+        return  filelist;
+    }
+
+    public static ArrayList<String> getSharedRouteNames(){
+        ArrayList<String> namelist = new ArrayList<>();
+        String ext = ".geojson";
+
+        ArrayList<File> filelist = getSharedRouteFileList();
+        for(File file : filelist){
+            String filename = file.getName();
+            String trimmed_filename = filename.substring(0,filename.length() - ext.length());
+            Log.d("SHARE_ROUTE", "file name " +trimmed_filename);
+            namelist.add(trimmed_filename);
+        }
+
+        return namelist;
+    }
+
+
+    ///////////////////////////////////////////////////////////////////////////////
+
 
     public static void writeToFile(String filepath, String data){
         FileOutputStream stream = null;

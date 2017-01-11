@@ -1,19 +1,15 @@
 package shareroute.nazib.com.shareroute;
 
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -25,19 +21,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 
-import java.io.File;
-
-import static shareroute.nazib.com.shareroute.FileUtils.createDir;
 import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
-import static shareroute.nazib.com.shareroute.FileUtils.deleteCreatedNewRouteFile;
-import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
-import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteNames;
-import static shareroute.nazib.com.shareroute.FileUtils.readFromFile;
-import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
 
 public class MainActivity extends AppCompatActivity
@@ -49,6 +37,8 @@ public class MainActivity extends AppCompatActivity
      */
     private GoogleApiClient client;
     Context context;
+    private FragmentTransaction transaction = null;
+    private Fragment fragment = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +55,7 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                createAddRouteDialog();
             }
         });
 
@@ -80,8 +69,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
         navigationView.setCheckedItem(R.id.nav_created_by_me);
         onNavigationItemSelected(navigationView.getMenu().findItem(R.id.nav_created_by_me));
-        // ATTENTION: This was auto-generated to implement the App Indexing API.
-        // See https://g.co/AppIndexing/AndroidStudio for more information.
+
     }
 
     @Override
@@ -122,8 +110,8 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
 
         FragmentManager manager = getSupportFragmentManager();
-        FragmentTransaction transaction = manager.beginTransaction();
-        Fragment fragment = new Fragment();
+        transaction = manager.beginTransaction();
+        fragment = new Fragment();
 
         int id = item.getItemId();
 
@@ -133,50 +121,16 @@ public class MainActivity extends AppCompatActivity
             fragment = new TestFragment_1();
         } else */
         if (id == R.id.nav_create_route) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            // Get the layout inflater
-            LayoutInflater inflater = this.getLayoutInflater();
-            // Inflate and set the layout for the dialog
-            // Pass null as the parent view because its going in the dialog layout
-            final View textEntryView = inflater.inflate(R.layout.dialog_input_route_name, null);
-            builder.setView(textEntryView)
-                    // Add action buttons
-                    .setPositiveButton("ok", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                            // sign in the user ...
-                            try {
-
-                                EditText editText = (EditText) textEntryView.findViewById(R.id.username);
-
-                                String route_name;
-                                route_name = editText.getText().toString();
-                                if(route_name.length() > 0){
-                                    createNewRouteFile(route_name+".geojson");
-                                    Intent intent = new Intent(context, MapActivity.class);
-                                    startActivity(intent);
-                                }
-
-                                }
-                            catch (Exception e){
-                                    e.printStackTrace();
-                            }
-                        }
-                    })
-                    .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-
-                        }
-                    }).create().show();
+            createAddRouteDialog();
 
         } else if (id == R.id.nav_created_by_me) {
-            fragment = new TestListFragment();
+            fragment = new CreatedRouteFragment();
             transaction.replace(R.id.flFragments, fragment);
             transaction.commit();
             getSupportActionBar().setTitle("Created by me");
 
         } else if (id == R.id.nav_shared_with_me) {
-            fragment = new TestListFragment();
+            fragment = new SharedRouteFragment();
             transaction.replace(R.id.flFragments, fragment);
             transaction.commit();
             getSupportActionBar().setTitle("Shared with me");
@@ -198,4 +152,53 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
+    private void createAddRouteDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Get the layout inflater
+        LayoutInflater inflater = this.getLayoutInflater();
+        // Inflate and set the layout for the dialog
+        // Pass null as the parent view because its going in the dialog layout
+        final View textEntryView = inflater.inflate(R.layout.dialog_input_route_name, null);
+        TextView textview = (TextView) textEntryView.findViewById(R.id.textView);
+        textview.setText("Create Route");
+        builder.setView(textEntryView)
+                // Add action buttons
+                .setPositiveButton("ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int id) {
+                        // sign in the user ...
+                        try {
+
+                            EditText editText = (EditText) textEntryView.findViewById(R.id.username);
+
+                            String route_name;
+                            route_name = editText.getText().toString();
+                            if(route_name.length() > 0){
+                                createNewRouteFile(route_name+".geojson");
+                                Intent intent = new Intent(context, MapActivity.class);
+                                startActivity(intent);
+                            }
+
+                            }
+                        catch (Exception e){
+                                e.printStackTrace();
+                        }
+                    }
+                })
+                .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+
+                    }
+                }).create().show();
+    }
+
+    @Override
+    public void onResume()
+    {  // After a pause OR at startup
+        super.onResume();
+        //Refresh your stuff here
+        if(fragment != null){
+            fragment.onResume();
+        }
+    }
 }

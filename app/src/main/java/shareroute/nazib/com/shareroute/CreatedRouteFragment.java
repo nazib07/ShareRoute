@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.SearchView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -23,23 +24,33 @@ import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteNames;
 /**
  * Created by nazib on 11/28/2016.
  */
-public class TestListFragment extends Fragment {
+public class CreatedRouteFragment extends Fragment {
+
+    private ArrayList<String> createdRouteNames;
+    private ListView lstItems;
+    private RouteListAdapter adapter;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_list_demo, container, false);
-        ListView lstItems = (ListView)v.findViewById(R.id.listView);
+        lstItems = (ListView)v.findViewById(R.id.listView);
+        lstItems.setTextFilterEnabled(true);
 
-        ArrayList<String> createdRouteNames;
-        createdRouteNames = getCreatedRouteNames();
-        if(!createdRouteNames.isEmpty()){
-            CustomAdapter adapter = new CustomAdapter(this, createdRouteNames);
-            lstItems.setAdapter(adapter);
-        }
+        fillListView(lstItems);
         return v;
     }
+
+    private void fillListView(ListView lstItems) {
+        createdRouteNames = getCreatedRouteNames();
+        if(!createdRouteNames.isEmpty()){
+            //CustomAdapter adapter = new CustomAdapter(this, createdRouteNames);
+            adapter = new RouteListAdapter(this, createdRouteNames);
+            lstItems.setAdapter(adapter);
+        }
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -71,14 +82,13 @@ public class TestListFragment extends Fragment {
             return false;
         }
         @Override
-        public boolean onQueryTextChange(String arg0) {
+        public boolean onQueryTextChange(String newText) {
             // TODO Auto-generated method stub
-//            if (mSearchCheck){
-//                // implement your search here
-//            }
+            Log.d("[SHARE_ROUTE]", "search text " + newText);
+            adapter.getFilter().filter(newText);
             return false;
         }
-    };//end OnQueryTextListener
+    };
 
 
     @Override
@@ -91,14 +101,18 @@ public class TestListFragment extends Fragment {
                 //openEditProfile(); //Open Edit Profile Fragment
                 Log.d( "NAZIB", "frag menu");
                 return true;
-
-
-
             default:
                 return super.onOptionsItemSelected(item);
         }//end switch
     }//end onOptionsItemSelected
 
+    @Override
+    public void onResume() {
+        Log.d("[SHARE_ROUTE]", "onResume of Fragment");
+        super.onResume();
 
+        fillListView(lstItems);
+        
+    }
 
 }
