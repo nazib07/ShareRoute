@@ -113,7 +113,7 @@ public class MapActivity extends AppCompatActivity implements
     private ArrayList<Polyline> mPolyLines;
     private ArrayList<Marker> mPolyLineMarkers;
     private MAP_DRAW_TYPE draw_type;
-
+    private LatLng zoomLatlngAtRoute;
     private String incomingFileName;
     private static boolean mIsDrawMovableLine;
     private Intent mExternalDataIntent;
@@ -139,6 +139,7 @@ public class MapActivity extends AppCompatActivity implements
         draw_type = MAP_DRAW_TYPE.DRAW_NONE;
         mIsDrawMovableLine = false;
 
+
         MapFragment mapFragment = (MapFragment) getFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
@@ -150,7 +151,7 @@ public class MapActivity extends AppCompatActivity implements
                 // TODO: Get info about the selected place.
                 Log.i(TAG, "Place: " + place.getName());
                 if (mMap != null) {
-                    mMap.addMarker(new MarkerOptions().position(place.getLatLng())).setVisible(true);
+                    //mMap.addMarker(new MarkerOptions().position(place.getLatLng())).setVisible(true);
                     mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15));
                 }
             }
@@ -240,6 +241,13 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
+    private void zoomToRoute(){
+        if(mMap != null) {
+            if(zoomLatlngAtRoute != null) {
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(zoomLatlngAtRoute, mMap.getCameraPosition().zoom));
+            }
+        }
+    }
     private void showSaveDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // Get the layout inflater
@@ -305,6 +313,7 @@ public class MapActivity extends AppCompatActivity implements
 
                 drawMarkersOnPolyline();
                 drawPolyLines();
+                zoomToRoute();
             }
             //
         }
@@ -338,6 +347,7 @@ public class MapActivity extends AppCompatActivity implements
 
         drawMarkersOnPolyline();
         drawPolyLines();
+        zoomToRoute();
         //
 
     }
@@ -576,6 +586,7 @@ public class MapActivity extends AppCompatActivity implements
             for(LatLng latLng : mCenterPoints){
                 Marker marker = drawMarkerAtLatLng(latLng);
                 centerMarkerList.add(marker);
+                zoomLatlngAtRoute = latLng;
             }
         }
     }
@@ -589,6 +600,7 @@ public class MapActivity extends AppCompatActivity implements
             for(LatLng latLng : mPoints){
                 Marker marker = drawMarkerAtLatLng(latLng);
                 mPolyLineMarkers.add(marker);
+                zoomLatlngAtRoute = latLng;
             }
         }
     }
