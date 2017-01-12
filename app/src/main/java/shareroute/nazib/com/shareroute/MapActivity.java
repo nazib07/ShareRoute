@@ -276,6 +276,7 @@ public class MapActivity extends AppCompatActivity implements
                             if (route_name.length() > 0) {
                                 incomingFileName = route_name+".geojson";
                                 createSharedRouteFile(incomingFileName);
+                                saveMapData(incomingFileName);
                             }
                             else {
                                 //onBackPressed();
@@ -891,6 +892,10 @@ public class MapActivity extends AppCompatActivity implements
                     layout.hide();
                     item.setVisible(false);
                 }
+                break;
+            case R.id.map_menu_help:
+                Intent intent =  new Intent(this, HelpActivity.class);
+                startActivity(intent);
                 break;
 
         }
