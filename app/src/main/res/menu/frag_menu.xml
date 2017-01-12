@@ -4,7 +4,7 @@
     <item
         android:id="@+id/frag_menu"
         android:orderInCategory="100"
-        android:title="frag_menu"
+        android:title="Help"
         app:showAsAction="never" />
 
     <!-- SEARCH -->

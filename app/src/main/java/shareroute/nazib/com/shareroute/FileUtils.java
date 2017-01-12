@@ -128,6 +128,22 @@ public class FileUtils {
         return file;
     }
 
+
+    public static void deleteAllCretedRoteFile(){
+        ArrayList<File> filelist = getCreatedRouteFileList();
+        for (File file : filelist){
+            file.delete();
+        }
+    }
+
+    public static void deleteAllSharedRoteFile(){
+        ArrayList<File> filelist = getSharedRouteFileList();
+        for (File file : filelist){
+            file.delete();
+        }
+    }
+
+
     public static void deleteSharedNewRouteFile(String filename){
         ArrayList<File> filelist = getSharedRouteFileList();
         for(File file : filelist){

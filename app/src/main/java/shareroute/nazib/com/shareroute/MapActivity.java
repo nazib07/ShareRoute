@@ -8,7 +8,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -41,6 +43,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -100,6 +103,7 @@ public class MapActivity extends AppCompatActivity implements
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
     // The minimum time between updates in milliseconds
     private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1; // 1 minute
+    private static final int mZoom = 17;
     Context context;
     GoogleMap mMap;
     ArrayList<LatLng> mPoints;
@@ -152,7 +156,7 @@ public class MapActivity extends AppCompatActivity implements
                 Log.i(TAG, "Place: " + place.getName());
                 if (mMap != null) {
                     //mMap.addMarker(new MarkerOptions().position(place.getLatLng())).setVisible(true);
-                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 15));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), mZoom));
                 }
             }
 
@@ -244,7 +248,7 @@ public class MapActivity extends AppCompatActivity implements
     private void zoomToRoute(){
         if(mMap != null) {
             if(zoomLatlngAtRoute != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(zoomLatlngAtRoute, mMap.getCameraPosition().zoom));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(zoomLatlngAtRoute, mZoom));
             }
         }
     }
@@ -414,6 +418,10 @@ public class MapActivity extends AppCompatActivity implements
 
         switch (view.getId()){
             case R.id.one:
+                if(mMovablePolyLine != null){
+                    mMovablePolyLine.remove();
+                    mMovablePolyLine = null;
+                }
                 drawMarkerOnCenter();
                 draw_type = MAP_DRAW_TYPE.DRAW_POINT;
                 break;
@@ -582,6 +590,7 @@ public class MapActivity extends AppCompatActivity implements
             Log.d(TAG, "mCenterPoints is null");
             return;
         }
+        draw_type = MAP_DRAW_TYPE.DRAW_POINT;
         if(!mCenterPoints.isEmpty()){
             for(LatLng latLng : mCenterPoints){
                 Marker marker = drawMarkerAtLatLng(latLng);
@@ -596,6 +605,7 @@ public class MapActivity extends AppCompatActivity implements
             Log.d(TAG, "mPoints is null");
             return;
         }
+        draw_type = MAP_DRAW_TYPE.DRAW_LINE;
         if(!mPoints.isEmpty()){
             for(LatLng latLng : mPoints){
                 Marker marker = drawMarkerAtLatLng(latLng);
@@ -621,15 +631,38 @@ public class MapActivity extends AppCompatActivity implements
     private Polyline drawPolyLineAt(LatLng start, LatLng end){
         Polyline polyline = null;
         if(mMap != null){
-            polyline = mMap.addPolyline(new PolylineOptions().color(Color.RED).add(start, end));
+            polyline = mMap.addPolyline(new PolylineOptions().color(Color.BLACK).add(start, end));
         }
         return polyline;
     }
 
     private Marker drawMarkerAtLatLng(LatLng latLng){
         Marker marker = null;
+
+        Bitmap smallMarker = null;
+        if(draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
+            int height = 50;
+            int width = 50;
+            BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.mipmap_round_marker);
+            Bitmap b = bitmapdraw.getBitmap();
+            smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
+        }
+        if(draw_type ==  MAP_DRAW_TYPE.DRAW_POINT){
+            int height = 100;
+            int width = 100;
+            BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.map_marker);
+            Bitmap b = bitmapdraw.getBitmap();
+            smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
+        }
+
         if(mMap != null){
             marker = mMap.addMarker(new MarkerOptions().position(latLng));
+            if(smallMarker != null) {
+                marker.setIcon(BitmapDescriptorFactory.fromBitmap(smallMarker));
+                if(draw_type ==  MAP_DRAW_TYPE.DRAW_LINE) {
+                    marker.setAnchor(0.5f, 0.5f);
+                }
+            }
             marker.setVisible(true);
         }
         return marker;
@@ -679,6 +712,7 @@ public class MapActivity extends AppCompatActivity implements
             e.printStackTrace();
         }
 
+        Log.d(TAG, "isSharedFile " + isSharedFile);
         if(mapObjects != null) {
             File file;
             if(!isSharedFile) {
@@ -733,7 +767,7 @@ public class MapActivity extends AppCompatActivity implements
         if (location != null) {
             Log.d(TAG, "location : " + location.toString());
             if (mMap != null) {
-                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 19));
+                mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), mZoom));
             }
         } else {
             Log.d(TAG, "location is null");
@@ -852,6 +886,7 @@ public class MapActivity extends AppCompatActivity implements
             case R.id.action_menu_done:
                 Log.d(TAG, "Done button clicked.......");
                 if(incomingFileName != null){
+                    Log.d(TAG, "incomingFileName " + incomingFileName);
                     saveMapData(incomingFileName);
                     layout.hide();
                     item.setVisible(false);

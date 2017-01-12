@@ -94,7 +94,8 @@ public class DetailsActivity extends AppCompatActivity {
                 }
                 return true;
             case R.id.action_help:
-
+                Intent intent =  new Intent(this, HelpActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

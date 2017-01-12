@@ -2,6 +2,7 @@ package shareroute.nazib.com.shareroute;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.MenuItemCompat;
@@ -44,7 +45,7 @@ public class CreatedRouteFragment extends Fragment {
 
     private void fillListView(ListView lstItems) {
         createdRouteNames = getCreatedRouteNames();
-        if(!createdRouteNames.isEmpty()){
+        if(createdRouteNames != null){
             //CustomAdapter adapter = new CustomAdapter(this, createdRouteNames);
             adapter = new RouteListAdapter(this, createdRouteNames);
             lstItems.setAdapter(adapter);
@@ -98,8 +99,8 @@ public class CreatedRouteFragment extends Fragment {
 
             /** EDIT **/
             case R.id.frag_menu:
-                //openEditProfile(); //Open Edit Profile Fragment
-                Log.d( "NAZIB", "frag menu");
+                Intent intent = new Intent(this.getActivity().getBaseContext(), HelpActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

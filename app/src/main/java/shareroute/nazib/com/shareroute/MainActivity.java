@@ -10,6 +10,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -25,6 +26,8 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 
+import static shareroute.nazib.com.shareroute.CommonUtils.INTENT_ACTION_CUSTOM_1;
+import static shareroute.nazib.com.shareroute.CommonUtils.SELECTED_ROUTE_FILE_NAME;
 import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
 
 
@@ -97,7 +100,9 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.menu_help) {
+            Intent intent =  new Intent(this, HelpActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -176,7 +181,9 @@ public class MainActivity extends AppCompatActivity
                             if(route_name.length() > 0){
                                 createNewRouteFile(route_name+".geojson");
                                 Intent intent = new Intent(context, MapActivity.class);
-                                startActivity(intent);
+                                intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
+                                intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, route_name);
+                                context.startActivity(intent);
                             }
 
                             }
@@ -195,6 +202,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onResume()
     {  // After a pause OR at startup
+        Log.d("[SHARE_ROUTE]", "onResume MainActivity");
         super.onResume();
         //Refresh your stuff here
         if(fragment != null){

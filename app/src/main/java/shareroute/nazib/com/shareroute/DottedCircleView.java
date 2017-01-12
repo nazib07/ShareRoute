@@ -2,6 +2,7 @@ package shareroute.nazib.com.shareroute;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
@@ -83,7 +84,16 @@ public class DottedCircleView extends View {
                 DASH_INTERVAL}, (float) 1.0);
         p.setPathEffect(dashPath);
         p.setStyle(Paint.Style.STROKE);
-        pin = (BitmapDrawable) getResources().getDrawable(R.drawable.ic_plus_16px);
+
+        int height = 100;
+        int width = 100;
+        BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.ic_plus);
+        Bitmap b = bitmapdraw.getBitmap();
+        Bitmap smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
+
+        pin = new BitmapDrawable(getResources(), smallMarker);
+
+        //pin = (BitmapDrawable) getResources().getDrawable(R.drawable.ic_plus_16px);
         pinXOffset = pin.getIntrinsicWidth() / 2;
         pinYOffset = pin.getIntrinsicHeight() / 2;
     }
