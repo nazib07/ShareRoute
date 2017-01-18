@@ -139,6 +139,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_2);
                 }
                 intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, routeList.get(position));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
             }
         });

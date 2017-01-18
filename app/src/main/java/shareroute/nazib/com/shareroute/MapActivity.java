@@ -357,11 +357,39 @@ public class MapActivity extends AppCompatActivity implements
 
     }
 
+    public void statusCheck() {
+        final LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+
+        if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            buildAlertMessageNoGps();
+
+        }
+    }
+
+    private void buildAlertMessageNoGps() {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                    }
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(final DialogInterface dialog, final int id) {
+                        dialog.cancel();
+                    }
+                });
+        final AlertDialog alert = builder.create();
+        alert.show();
+    }
+
     /**
      * Enables the My Location layer if the fine location permission has been granted.
      */
     private void enableMyLocation() {
         Log.d(TAG, "enableMyLocation....");
+        statusCheck();
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission to access the location is missing.
@@ -891,6 +919,10 @@ public class MapActivity extends AppCompatActivity implements
                     saveMapData(incomingFileName);
                     layout.hide();
                     item.setVisible(false);
+                }else{
+                    if(isSharedFile){
+                        showSaveDialog();
+                    }
                 }
                 break;
             case R.id.map_menu_help:

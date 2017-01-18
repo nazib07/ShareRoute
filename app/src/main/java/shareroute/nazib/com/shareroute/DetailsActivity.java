@@ -65,8 +65,7 @@ public class DetailsActivity extends AppCompatActivity {
 
                 Intent sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, "Sharing "+ incomingFileName + " route file");
-                sendIntent.setType("text/geojson");
+                sendIntent.setType("*/*");
                 sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://"+file.getAbsolutePath()));
                 startActivity(sendIntent);
             }

@@ -121,7 +121,7 @@
             android:layout_height="match_parent"
             android:layout_weight="1"
             android:scaleType="centerInside"
-            android:src="@drawable/abc_ic_menu_cut_mtrl_alpha"/>
+            android:src="@drawable/ic_content_cut_white_24dp"/>
 
     </LinearLayout>
     </com.github.fafaldo.fabtoolbar.widget.FABToolbarLayout>
