@@ -7,6 +7,10 @@
             android:icon="@drawable/ic_add_black_24dp"
             android:title="Create Route" />
         <item
+            android:id="@+id/nav_record_route"
+            android:icon="@drawable/ic_videocam_black_24dp"
+            android:title="Record Route" />
+        <item
             android:id="@+id/nav_created_by_me"
             android:icon="@drawable/ic_person_black_24dp"
             android:title="Created by me" />

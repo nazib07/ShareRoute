@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -24,6 +23,8 @@ import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.getbase.floatingactionbutton.FloatingActionButton;
+import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.common.api.GoogleApiClient;
 
 import static shareroute.nazib.com.shareroute.CommonUtils.INTENT_ACTION_CUSTOM_1;
@@ -54,13 +55,28 @@ public class MainActivity extends AppCompatActivity
         FileUtils.setContext(context);
 
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
+        final FloatingActionsMenu menuMultipleActions = (FloatingActionsMenu) findViewById(R.id.multiple_actions_left);
+        menuMultipleActions.collapse();
+
+        final FloatingActionButton fabCreateRoute = (FloatingActionButton) findViewById(R.id.fab_create_route);
+        fabCreateRoute.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
+                menuMultipleActions.collapse();
+                Log.d("[SHARE_ROUTE]", "fab create button clicked");
                 createAddRouteDialog();
             }
         });
+
+        final FloatingActionButton fabRecordRoute = (FloatingActionButton) findViewById(R.id.fab_record_route);
+        fabRecordRoute.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                menuMultipleActions.collapse();
+                Log.d("[SHARE_ROUTE]", "fab RecordRoute button clicked");
+            }
+        });
+
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -120,15 +136,12 @@ public class MainActivity extends AppCompatActivity
 
         int id = item.getItemId();
 
-/*        if (id == R.id.nav_camera) {
-            // Handle the camera action
-            Log.d("NAZIB", "nav_camera");
-            fragment = new TestFragment_1();
-        } else */
         if (id == R.id.nav_create_route) {
             createAddRouteDialog();
 
-        } else if (id == R.id.nav_created_by_me) {
+        }else if(id == R.id.nav_record_route){
+            Log.d("[SHARE_ROUTE]", "nav record route");
+        }else if (id == R.id.nav_created_by_me) {
             fragment = new CreatedRouteFragment();
             transaction.replace(R.id.flFragments, fragment);
             transaction.commit();
