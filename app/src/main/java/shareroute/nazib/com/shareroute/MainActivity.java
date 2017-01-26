@@ -27,8 +27,6 @@ import com.getbase.floatingactionbutton.FloatingActionButton;
 import com.getbase.floatingactionbutton.FloatingActionsMenu;
 import com.google.android.gms.common.api.GoogleApiClient;
 
-import static shareroute.nazib.com.shareroute.CommonUtils.INTENT_ACTION_CUSTOM_1;
-import static shareroute.nazib.com.shareroute.CommonUtils.SELECTED_ROUTE_FILE_NAME;
 import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
 
 
@@ -64,7 +62,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v) {
                 menuMultipleActions.collapse();
                 Log.d("[SHARE_ROUTE]", "fab create button clicked");
-                createAddRouteDialog();
+                createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT);
             }
         });
 
@@ -74,6 +72,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(View v) {
                 menuMultipleActions.collapse();
                 Log.d("[SHARE_ROUTE]", "fab RecordRoute button clicked");
+                createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD);
             }
         });
 
@@ -137,10 +136,11 @@ public class MainActivity extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_create_route) {
-            createAddRouteDialog();
+            createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT);
 
         }else if(id == R.id.nav_record_route){
             Log.d("[SHARE_ROUTE]", "nav record route");
+            createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD);
         }else if (id == R.id.nav_created_by_me) {
             fragment = new CreatedRouteFragment();
             transaction.replace(R.id.flFragments, fragment);
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    private void createAddRouteDialog() {
+    private void createAddRouteDialog(final ROUTE_CREATION_MODE mode) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // Get the layout inflater
         LayoutInflater inflater = this.getLayoutInflater();
@@ -194,7 +194,11 @@ public class MainActivity extends AppCompatActivity
                             if(route_name.length() > 0){
                                 createNewRouteFile(route_name+".geojson");
                                 Intent intent = new Intent(context, MapActivity.class);
-                                intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
+                                if(mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT) {
+                                    intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
+                                }else if(mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD){
+                                    intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_3);
+                                }
                                 intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, route_name);
                                 context.startActivity(intent);
                             }

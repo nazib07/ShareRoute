@@ -13,6 +13,7 @@ public class CommonUtils {
     public final static String SELECTED_ROUTE_FILE_NAME =  "SELECTED_ROUTE_FILE_NAME";
     public final static String INTENT_ACTION_CUSTOM_1 = "INTENT_ACTION_CUSTOM_1";
     public final static String INTENT_ACTION_CUSTOM_2 = "INTENT_ACTION_CUSTOM_2";
+    public final static String INTENT_ACTION_CUSTOM_3 = "INTENT_ACTION_CUSTOM_3";
 
     public static void createAlert(final Context context, String message){
         AlertDialog alertDialog = new AlertDialog.Builder(

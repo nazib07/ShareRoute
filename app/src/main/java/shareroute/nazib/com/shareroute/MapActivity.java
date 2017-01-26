@@ -12,7 +12,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
-import android.location.LocationListener;
+import com.google.android.gms.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
@@ -20,6 +20,7 @@ import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -35,7 +36,11 @@ import com.cocoahero.android.geojson.MultiPoint;
 import com.cocoahero.android.geojson.Position;
 import com.cocoahero.android.geojson.PositionList;
 import com.github.fafaldo.fabtoolbar.widget.FABToolbarLayout;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.places.Place;
 import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
 import com.google.android.gms.location.places.ui.PlaceSelectionListener;
@@ -59,6 +64,7 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
@@ -85,6 +91,11 @@ enum MAP_DRAW_TYPE{
     DRAW_LINE,
 }
 
+enum ROUTE_CREATION_MODE{
+    ROUTE_CREATION_MODE_EDIT,
+    ROUTE_CREATION_MODE_RECORD
+}
+
 public class MapActivity extends AppCompatActivity implements
         OnMapReadyCallback,
         View.OnClickListener,
@@ -92,6 +103,8 @@ public class MapActivity extends AppCompatActivity implements
         GoogleMap.OnCameraMoveListener,
         GoogleMap.OnCameraMoveCanceledListener,
         GoogleMap.OnCameraIdleListener,
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
         GoogleMap.OnMyLocationButtonClickListener,
         ActivityCompat.OnRequestPermissionsResultCallback {
@@ -110,7 +123,7 @@ public class MapActivity extends AppCompatActivity implements
     ArrayList<LatLng> mCenterPoints;
     Polyline mMovablePolyLine;
     private FABToolbarLayout layout;
-    private View one, two, three, four;
+    private View one, two, three, four, rec;
     private View fab;
     private boolean mPermissionDenied = false;
     private ArrayList<Marker> centerMarkerList;
@@ -124,6 +137,15 @@ public class MapActivity extends AppCompatActivity implements
     private MenuItem item;
     private Menu mOptionsMenu;
     private boolean isSharedFile;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
+    private Location mLastLocation;
+    private Location mSavedLocation;
+    private static int flag = 1;
+    private boolean isRecordRoute;
+    private boolean mIsRecodrdingStarted;
+    private boolean mIsCameraNotMovedToCurrentLoc;
+    private float mMinRecordDistance = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,6 +164,11 @@ public class MapActivity extends AppCompatActivity implements
         mPolyLineMarkers = new ArrayList<>();
         draw_type = MAP_DRAW_TYPE.DRAW_NONE;
         mIsDrawMovableLine = false;
+        mLastLocation = null;
+        mSavedLocation =  null;
+        isRecordRoute = false;
+        mIsRecodrdingStarted = false;
+        mIsCameraNotMovedToCurrentLoc = false;
 
 
         MapFragment mapFragment = (MapFragment) getFragmentManager()
@@ -171,6 +198,7 @@ public class MapActivity extends AppCompatActivity implements
         setSupportActionBar(toolbar);
 
         layout = (FABToolbarLayout) findViewById(R.id.fabtoolbar);
+        rec = findViewById(R.id.rec);
         one = findViewById(R.id.one);
         two = findViewById(R.id.two);
         three = findViewById(R.id.three);
@@ -181,6 +209,11 @@ public class MapActivity extends AppCompatActivity implements
         two.setOnClickListener(this);
         three.setOnClickListener(this);
         four.setOnClickListener(this);
+        rec.setOnClickListener(this);
+
+        rec.setClickable(false);
+        rec.setEnabled(false);
+        rec.setAlpha(.5f);
 
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -213,6 +246,23 @@ public class MapActivity extends AppCompatActivity implements
                 loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
             }
             Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
+        }else if(CommonUtils.INTENT_ACTION_CUSTOM_3.equals(intentAction)) {
+            Log.d(TAG, "Record Route Intent");
+            incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
+            if (incomingFileName != null) {
+                try {
+                    getSupportActionBar().setTitle(incomingFileName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                isSharedFile = false;
+                incomingFileName += ".geojson";
+                isRecordRoute = true;
+                rec.setEnabled(true);
+                rec.setClickable(true);
+                rec.setAlpha(1.0f);
+                loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
+            }
         }
         else if(CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)) {
             Log.d(TAG, "Shared Route Intent");
@@ -397,6 +447,7 @@ public class MapActivity extends AppCompatActivity implements
                     Manifest.permission.ACCESS_FINE_LOCATION, true);
         } else if (mMap != null) {
             // Access to the location has been granted to the app.
+            buildGoogleApiClient();
             mMap.setMyLocationEnabled(true);
             moveCameraToCurrentLocation();
         }
@@ -446,6 +497,26 @@ public class MapActivity extends AppCompatActivity implements
         Toast.makeText(this, "Element clicked " + view.getId(), Toast.LENGTH_SHORT).show();
 
         switch (view.getId()){
+            case R.id.rec:
+                mIsRecodrdingStarted ^= true;
+                if(mIsRecodrdingStarted){
+                    ((ImageView)rec).setImageResource(R.drawable.ic_videocam_off_white_24dp);
+                    one.setClickable(false);
+                    one.setEnabled(false);
+                    one.setAlpha(.5f);
+                    two.setClickable(false);
+                    two.setEnabled(false);
+                    two.setAlpha(.5f);
+                }else {
+                    ((ImageView)rec).setImageResource(R.drawable.ic_videocam_white_24dp);
+                    one.setClickable(true);
+                    one.setEnabled(true);
+                    one.setAlpha(1.0f);
+                    two.setClickable(true);
+                    two.setEnabled(true);
+                    two.setAlpha(1.0f);
+                }
+                break;
             case R.id.one:
                 if(mMovablePolyLine != null){
                     mMovablePolyLine.remove();
@@ -485,6 +556,16 @@ public class MapActivity extends AppCompatActivity implements
         drawMarkersOnPolyline();
         drawPolyLines();
 
+    }
+
+    private void drawRecordedLines(LatLng point){
+        mPoints.add(point);
+
+        clearAllMarkersOnPolyline();
+        clearAllPolylines();
+
+        drawMarkersOnPolyline();
+        drawPolyLines();
     }
 
     private void drawMarkerOnCenter() {
@@ -800,11 +881,12 @@ public class MapActivity extends AppCompatActivity implements
             }
         } else {
             Log.d(TAG, "location is null");
+            mIsCameraNotMovedToCurrentLoc = true;
         }
     }
 
     private Location getLocation() {
-        Location location = null;
+      /*  Location location = null;
         try {
             LocationManager locationManager = (LocationManager) this
                     .getSystemService(LOCATION_SERVICE);
@@ -868,31 +950,39 @@ public class MapActivity extends AppCompatActivity implements
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        return location;
+*/
+        return mLastLocation;
     }
 
 
     @Override
     public void onLocationChanged(Location location) {
-        Log.d(TAG, "onLocationChanged");
+        Log.d(TAG, "onLocationChanged : " + location.toString());
+        mLastLocation = location;
+        if(mIsCameraNotMovedToCurrentLoc){
+            moveCameraToCurrentLocation();
+            mIsCameraNotMovedToCurrentLoc = false;
+        }
+        if(isRecordRoute) {
+            if(mIsRecodrdingStarted) {
+                if (flag == 1) {
+                    mSavedLocation = mLastLocation;
+                    drawRecordedLines(new LatLng(mSavedLocation.getLatitude(), mSavedLocation.getLongitude()));
+                    flag = 2;
+                } else {
+                    float dist = mSavedLocation.distanceTo(mLastLocation);
+                    Log.d(TAG, "distance : " + dist);
+                    if (dist >= mMinRecordDistance) {
+                        //drawMarkerAtLatLng(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
+                        mSavedLocation = mLastLocation;
+                        drawRecordedLines(new LatLng(mSavedLocation.getLatitude(), mSavedLocation.getLongitude()));
+                    }
+                }
+            }
+        }
 
     }
 
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-
-    }
 
     @Override
     public boolean onMyLocationButtonClick() {
@@ -1063,6 +1153,40 @@ public class MapActivity extends AppCompatActivity implements
      */
     public static boolean isMediaDocument(Uri uri) {
         return "com.android.providers.media.documents".equals(uri.getAuthority());
+    }
+
+
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
+    }
+
+    @Override
+    public void onConnected(@Nullable Bundle bundle) {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(1000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
     }
     //////////////////////////
 
