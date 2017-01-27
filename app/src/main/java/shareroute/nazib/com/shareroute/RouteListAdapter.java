@@ -31,7 +31,8 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Initialize context variables
-     * @param activity route list activity
+     *
+     * @param activity  route list activity
      * @param routeList route list
      */
     public RouteListAdapter(CreatedRouteFragment activity, ArrayList<String> routeList) {
@@ -52,6 +53,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Get size of route list
+     *
      * @return userList size
      */
     @Override
@@ -61,6 +63,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Get specific item from route list
+     *
      * @param i item index
      * @return list item
      */
@@ -71,6 +74,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Get route list item id
+     *
      * @param i item index
      * @return current item id
      */
@@ -81,9 +85,10 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Create list row view
+     *
      * @param position index
-     * @param view current list item view
-     * @param parent parent
+     * @param view     current list item view
+     * @param parent   parent
      * @return view
      */
     @Override
@@ -97,9 +102,9 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
             LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = layoutInflater.inflate(R.layout.program_list, parent, false);
             holder = new Holder();
-            holder.tv=(TextView) view.findViewById(R.id.textView1);
-            holder.img=(ImageView) view.findViewById(R.id.imageView1);
-            holder.btn_details =(ImageButton) view.findViewById(R.id.imageButton1);
+            holder.tv = (TextView) view.findViewById(R.id.textView1);
+            holder.img = (ImageView) view.findViewById(R.id.imageView1);
+            holder.btn_details = (ImageButton) view.findViewById(R.id.imageButton1);
 
             view.setTag(holder);
         } else {
@@ -113,12 +118,12 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                Toast.makeText(context, "You Clicked "+ routeList.get(position), Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "You Clicked " + routeList.get(position), Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(context, MapActivity.class);
                 Log.d("[SHARE_ROUTE]", "isShared " + isShared.toString());
-                if(!isShared) {
+                if (!isShared) {
                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
-                }else if(isShared){
+                } else if (isShared) {
                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_2);
                 }
                 intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, routeList.get(position));
@@ -131,11 +136,11 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
             @Override
             public void onClick(View v) {
-                Toast.makeText(context, "details "+ routeList.get(position), Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "details " + routeList.get(position), Toast.LENGTH_LONG).show();
                 Intent intent = new Intent(context, DetailsActivity.class);
-                if(!isShared) {
+                if (!isShared) {
                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
-                }else if(isShared){
+                } else if (isShared) {
                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_2);
                 }
                 intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, routeList.get(position));
@@ -149,6 +154,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
     /**
      * Get custom filter
+     *
      * @return filter
      */
     @Override
@@ -163,8 +169,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
     /**
      * Keep reference to children view to avoid unnecessary calls
      */
-    public class Holder
-    {
+    public class Holder {
         TextView tv;
         ImageView img;
         ImageButton btn_details;
@@ -179,7 +184,7 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
         @Override
         protected FilterResults performFiltering(CharSequence constraint) {
             FilterResults filterResults = new FilterResults();
-            if (constraint!=null && constraint.length()>0) {
+            if (constraint != null && constraint.length() > 0) {
                 ArrayList<String> tempList = new ArrayList<>();
 
                 // search content in route list
@@ -201,8 +206,9 @@ public class RouteListAdapter extends BaseAdapter implements Filterable {
 
         /**
          * Notify about filtered list to ui
+         *
          * @param constraint text
-         * @param results filtered result
+         * @param results    filtered result
          */
         @SuppressWarnings("unchecked")
         @Override

@@ -12,7 +12,9 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
+
 import com.google.android.gms.location.LocationListener;
+
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Build;
@@ -34,7 +36,6 @@ import com.cocoahero.android.geojson.GeometryCollection;
 import com.cocoahero.android.geojson.LineString;
 import com.cocoahero.android.geojson.MultiPoint;
 import com.cocoahero.android.geojson.Position;
-import com.cocoahero.android.geojson.PositionList;
 import com.github.fafaldo.fabtoolbar.widget.FABToolbarLayout;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -55,7 +56,6 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
-
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -69,29 +69,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.Iterator;
 
-import static shareroute.nazib.com.shareroute.FileUtils.createNewRouteFile;
 import static shareroute.nazib.com.shareroute.FileUtils.createSharedRouteFile;
 import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
 import static shareroute.nazib.com.shareroute.FileUtils.getSharedRouteFileObject;
 import static shareroute.nazib.com.shareroute.FileUtils.readFromFile;
 import static shareroute.nazib.com.shareroute.FileUtils.writeToFile;
 
-enum MAP_DRAW_TYPE{
+enum MAP_DRAW_TYPE {
     DRAW_NONE,
     DRAW_POINT,
     DRAW_LINE,
 }
 
-enum ROUTE_CREATION_MODE{
+enum ROUTE_CREATION_MODE {
     ROUTE_CREATION_MODE_EDIT,
     ROUTE_CREATION_MODE_RECORD
 }
@@ -145,7 +141,8 @@ public class MapActivity extends AppCompatActivity implements
     private boolean isRecordRoute;
     private boolean mIsRecodrdingStarted;
     private boolean mIsCameraNotMovedToCurrentLoc;
-    private float mMinRecordDistance = 5;
+    private float mMinRecordDistance = CommonUtils.DEFAULT_DISTANCE_TUNER_VALUE;
+    private boolean isMoveToCurrentLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -165,10 +162,12 @@ public class MapActivity extends AppCompatActivity implements
         draw_type = MAP_DRAW_TYPE.DRAW_NONE;
         mIsDrawMovableLine = false;
         mLastLocation = null;
-        mSavedLocation =  null;
+        mSavedLocation = null;
         isRecordRoute = false;
         mIsRecodrdingStarted = false;
         mIsCameraNotMovedToCurrentLoc = false;
+        mMinRecordDistance = CommonUtils.getTunerValueFromPreference(this);
+        isMoveToCurrentLocation = true;
 
 
         MapFragment mapFragment = (MapFragment) getFragmentManager()
@@ -228,16 +227,16 @@ public class MapActivity extends AppCompatActivity implements
         Intent intent = getIntent();
         String intentAction = intent.getAction();
 
-        Log.d(TAG, "intent= "+ intent);
+        Log.d(TAG, "intent= " + intent);
 
 
-        if(CommonUtils.INTENT_ACTION_CUSTOM_1.equals(intentAction)) {
+        if (CommonUtils.INTENT_ACTION_CUSTOM_1.equals(intentAction)) {
             Log.d(TAG, "Created Route Intent");
             incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
             if (incomingFileName != null) {
                 try {
                     getSupportActionBar().setTitle(incomingFileName);
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 isSharedFile = false;
@@ -246,7 +245,7 @@ public class MapActivity extends AppCompatActivity implements
                 loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
             }
             Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
-        }else if(CommonUtils.INTENT_ACTION_CUSTOM_3.equals(intentAction)) {
+        } else if (CommonUtils.INTENT_ACTION_CUSTOM_3.equals(intentAction)) {
             Log.d(TAG, "Record Route Intent");
             incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
             if (incomingFileName != null) {
@@ -263,14 +262,13 @@ public class MapActivity extends AppCompatActivity implements
                 rec.setAlpha(1.0f);
                 loadMapData(getCreatedRouteFileObject(incomingFileName).getAbsolutePath());
             }
-        }
-        else if(CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)) {
+        } else if (CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)) {
             Log.d(TAG, "Shared Route Intent");
             incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
             if (incomingFileName != null) {
                 try {
                     getSupportActionBar().setTitle(incomingFileName);
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
                 isSharedFile = false;
@@ -280,10 +278,9 @@ public class MapActivity extends AppCompatActivity implements
 
                 loadMapData(getSharedRouteFileObject(incomingFileName).getAbsolutePath());
             }
-        }
-        else if (Intent.ACTION_VIEW.equals(intentAction)) {
+        } else if (Intent.ACTION_VIEW.equals(intentAction)) {
 
-            if (intent!=null){
+            if (intent != null) {
                 mExternalDataIntent = intent;
 
                 ////////////////////////////////////////////////////
@@ -295,13 +292,14 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
-    private void zoomToRoute(){
-        if(mMap != null) {
-            if(zoomLatlngAtRoute != null) {
+    private void zoomToRoute() {
+        if (mMap != null) {
+            if (zoomLatlngAtRoute != null) {
                 mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(zoomLatlngAtRoute, mZoom));
             }
         }
     }
+
     private void showSaveDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         // Get the layout inflater
@@ -324,11 +322,10 @@ public class MapActivity extends AppCompatActivity implements
                             String route_name;
                             route_name = editText.getText().toString();
                             if (route_name.length() > 0) {
-                                incomingFileName = route_name+".geojson";
+                                incomingFileName = route_name + ".geojson";
                                 createSharedRouteFile(incomingFileName);
                                 saveMapData(incomingFileName);
-                            }
-                            else {
+                            } else {
                                 //onBackPressed();
                             }
 
@@ -352,14 +349,14 @@ public class MapActivity extends AppCompatActivity implements
             // Permission to access the location is missing.
             PermissionUtils.requestPermission(this, WRITE_EXTERNAL_STORAGE_PERMISSION_REQUEST_CODE,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE, true);
-        }else {
+        } else {
             Uri uri = intent.getData();
             String sharedFileName = getPath(context, uri);
             Log.d(TAG, "uri= " + getPath(context, uri));
             loadMapData(sharedFileName);
 
             //
-            if(mMap!=null) {
+            if (mMap != null) {
                 clearAllMarkersOnPoint();
                 drawMarkersOnPoint();
 
@@ -463,11 +460,10 @@ public class MapActivity extends AppCompatActivity implements
                 Manifest.permission.ACCESS_FINE_LOCATION)) {
             // Enable the my location layer if the permission has been granted.
             enableMyLocation();
-        }else if(PermissionUtils.isPermissionGranted(permissions, grantResults,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)){
+        } else if (PermissionUtils.isPermissionGranted(permissions, grantResults,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
             loadDataFromExternalFile(mExternalDataIntent);
-        }
-        else {
+        } else {
             // Display the missing permission error dialog when the fragments resume.
             mPermissionDenied = true;
         }
@@ -496,19 +492,26 @@ public class MapActivity extends AppCompatActivity implements
 
         Toast.makeText(this, "Element clicked " + view.getId(), Toast.LENGTH_SHORT).show();
 
-        switch (view.getId()){
+        switch (view.getId()) {
             case R.id.rec:
+
                 mIsRecodrdingStarted ^= true;
-                if(mIsRecodrdingStarted){
-                    ((ImageView)rec).setImageResource(R.drawable.ic_videocam_off_white_24dp);
+                if (mIsRecodrdingStarted) {
+                    if (mMovablePolyLine != null) {
+                        mMovablePolyLine.remove();
+                        mMovablePolyLine = null;
+                        mIsDrawMovableLine = false;
+                    }
+
+                    ((ImageView) rec).setImageResource(R.drawable.ic_videocam_off_white_24dp);
                     one.setClickable(false);
                     one.setEnabled(false);
                     one.setAlpha(.5f);
                     two.setClickable(false);
                     two.setEnabled(false);
                     two.setAlpha(.5f);
-                }else {
-                    ((ImageView)rec).setImageResource(R.drawable.ic_videocam_white_24dp);
+                } else {
+                    ((ImageView) rec).setImageResource(R.drawable.ic_videocam_white_24dp);
                     one.setClickable(true);
                     one.setEnabled(true);
                     one.setAlpha(1.0f);
@@ -518,7 +521,7 @@ public class MapActivity extends AppCompatActivity implements
                 }
                 break;
             case R.id.one:
-                if(mMovablePolyLine != null){
+                if (mMovablePolyLine != null) {
                     mMovablePolyLine.remove();
                     mMovablePolyLine = null;
                 }
@@ -530,13 +533,18 @@ public class MapActivity extends AppCompatActivity implements
                 draw_type = MAP_DRAW_TYPE.DRAW_LINE;
                 break;
             case R.id.three:
-                moveCameraToCurrentLocation();
+                if (isMoveToCurrentLocation) {
+                    moveCameraToCurrentLocation();
+                } else {
+                    zoomToRoute();
+                }
+                isMoveToCurrentLocation ^= true;
                 break;
             case R.id.four:
-                if(draw_type == MAP_DRAW_TYPE.DRAW_POINT){
+                if (draw_type == MAP_DRAW_TYPE.DRAW_POINT) {
                     removeLastMarker();
-                }else if(draw_type == MAP_DRAW_TYPE.DRAW_LINE){
-                removeLastPointOnLine();
+                } else if (draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
+                    removeLastPointOnLine();
                 }
                 break;
         }
@@ -558,7 +566,7 @@ public class MapActivity extends AppCompatActivity implements
 
     }
 
-    private void drawRecordedLines(LatLng point){
+    private void drawRecordedLines(LatLng point) {
         mPoints.add(point);
 
         clearAllMarkersOnPolyline();
@@ -579,55 +587,54 @@ public class MapActivity extends AppCompatActivity implements
 
     private void removeLastMarker() {
         Log.d(TAG, "removeLastMarker");
-        if(!centerMarkerList.isEmpty()){
+        if (!centerMarkerList.isEmpty()) {
             Log.d(TAG, "List not empty");
-            Marker marker = centerMarkerList.get(centerMarkerList.size()-1);
-            if(marker != null) {
+            Marker marker = centerMarkerList.get(centerMarkerList.size() - 1);
+            if (marker != null) {
                 Log.d(TAG, "Marker not null");
                 marker.remove();
-                centerMarkerList.remove(centerMarkerList.size()-1);
-                if(!mCenterPoints.isEmpty()) {
+                centerMarkerList.remove(centerMarkerList.size() - 1);
+                if (!mCenterPoints.isEmpty()) {
                     mCenterPoints.remove(mCenterPoints.size() - 1);
                 }
             }
         }
     }
 
-    private void removeLastPointOnLine()
-    {
+    private void removeLastPointOnLine() {
         Log.d(TAG, "removeLastMarker");
 
-        if(!mPolyLines.isEmpty()){
-            Polyline polyline = mPolyLines.get(mPolyLines.size()-1);
+        if (!mPolyLines.isEmpty()) {
+            Polyline polyline = mPolyLines.get(mPolyLines.size() - 1);
             polyline.remove();
-            mPolyLines.remove(mPolyLines.size()-1);
-            if(!mPoints.isEmpty()){
-                mPoints.remove(mPoints.size()-1);
+            mPolyLines.remove(mPolyLines.size() - 1);
+            if (!mPoints.isEmpty()) {
+                mPoints.remove(mPoints.size() - 1);
             }
         }
 
-        if(!mPoints.isEmpty()) {
+        if (!mPoints.isEmpty()) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(mPoints.get(mPoints.size() - 1), mMap.getCameraPosition().zoom));
 
         }
 
-        if(!mPolyLineMarkers.isEmpty() && mPolyLineMarkers.size() >1){
-            Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size()-1);
+        if (!mPolyLineMarkers.isEmpty() && mPolyLineMarkers.size() > 1) {
+            Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size() - 1);
             marker.remove();
-            mPolyLineMarkers.remove(mPolyLineMarkers.size()-1);
+            mPolyLineMarkers.remove(mPolyLineMarkers.size() - 1);
 
-        }else{
-            if(mPoints.size() == 1){
+        } else {
+            if (mPoints.size() == 1) {
                 Log.d(TAG, "mPoints size 1");
-                mPoints.remove(mPoints.size()-1);
-                Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size()-1);
+                mPoints.remove(mPoints.size() - 1);
+                Marker marker = mPolyLineMarkers.get(mPolyLineMarkers.size() - 1);
                 marker.remove();
             }
         }
     }
 
-    private void loadMapData(String filepath){
-        Log.d(TAG, "loadMapData "+ filepath);
+    private void loadMapData(String filepath) {
+        Log.d(TAG, "loadMapData " + filepath);
         String strContent = readFromFile(filepath);
         GeoJSONObject geoJSON = null;
         ArrayList<LatLng> markersLatLng = new ArrayList<>();
@@ -643,12 +650,12 @@ public class MapActivity extends AppCompatActivity implements
             MultiPoint markerpoints = (MultiPoint) geometries.get(0);
             MultiPoint multiPoint = (MultiPoint) geometries.get(1);
 
-            for(Position position : markerpoints.getPositions()){
+            for (Position position : markerpoints.getPositions()) {
                 LatLng latLng = new LatLng(position.getLatitude(), position.getLongitude());
                 markersLatLng.add(latLng);
             }
 
-            for(Position position : multiPoint.getPositions()){
+            for (Position position : multiPoint.getPositions()) {
                 LatLng latLng = new LatLng(position.getLatitude(), position.getLongitude());
                 markersPolylineLatLng.add(latLng);
             }
@@ -659,50 +666,49 @@ public class MapActivity extends AppCompatActivity implements
             mPoints.clear();
             mCenterPoints.clear();
 
-            for(LatLng latLng : markersPolylineLatLng){
+            for (LatLng latLng : markersPolylineLatLng) {
                 mPoints.add(latLng);
             }
-            for(LatLng latLng : markersLatLng){
+            for (LatLng latLng : markersLatLng) {
                 mCenterPoints.add(latLng);
             }
 
-        }
-        catch (JSONException e) {
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 
     }
 
 
-    private  void clearAllMarkersOnPoint(){
-        for(int i=0; i<centerMarkerList.size(); i++){
+    private void clearAllMarkersOnPoint() {
+        for (int i = 0; i < centerMarkerList.size(); i++) {
             centerMarkerList.get(i).remove();
         }
         centerMarkerList.clear();
     }
 
-    private  void clearAllMarkersOnPolyline(){
-        for(int i=0; i<mPolyLineMarkers.size(); i++){
+    private void clearAllMarkersOnPolyline() {
+        for (int i = 0; i < mPolyLineMarkers.size(); i++) {
             mPolyLineMarkers.get(i).remove();
         }
         mPolyLineMarkers.clear();
     }
 
-    private  void clearAllPolylines(){
-        for(int i=0; i<mPolyLines.size(); i++){
+    private void clearAllPolylines() {
+        for (int i = 0; i < mPolyLines.size(); i++) {
             mPolyLines.get(i).remove();
         }
         mPolyLines.clear();
     }
 
-    private void drawMarkersOnPoint(){
-        if(mCenterPoints == null){
+    private void drawMarkersOnPoint() {
+        if (mCenterPoints == null) {
             Log.d(TAG, "mCenterPoints is null");
             return;
         }
         draw_type = MAP_DRAW_TYPE.DRAW_POINT;
-        if(!mCenterPoints.isEmpty()){
-            for(LatLng latLng : mCenterPoints){
+        if (!mCenterPoints.isEmpty()) {
+            for (LatLng latLng : mCenterPoints) {
                 Marker marker = drawMarkerAtLatLng(latLng);
                 centerMarkerList.add(marker);
                 zoomLatlngAtRoute = latLng;
@@ -710,14 +716,14 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
-    private void drawMarkersOnPolyline(){
-        if(mPoints == null){
+    private void drawMarkersOnPolyline() {
+        if (mPoints == null) {
             Log.d(TAG, "mPoints is null");
             return;
         }
         draw_type = MAP_DRAW_TYPE.DRAW_LINE;
-        if(!mPoints.isEmpty()){
-            for(LatLng latLng : mPoints){
+        if (!mPoints.isEmpty()) {
+            for (LatLng latLng : mPoints) {
                 Marker marker = drawMarkerAtLatLng(latLng);
                 mPolyLineMarkers.add(marker);
                 zoomLatlngAtRoute = latLng;
@@ -725,39 +731,38 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
-    private void drawPolyLines(){
-        if(mPoints == null){
+    private void drawPolyLines() {
+        if (mPoints == null) {
             Log.d(TAG, "mPoints is null");
             return;
         }
-        for(int i=0; i<mPoints.size()-1; i+=1)
-        {
-            Polyline polyline = drawPolyLineAt(mPoints.get(i), mPoints.get(i+1));
+        for (int i = 0; i < mPoints.size() - 1; i += 1) {
+            Polyline polyline = drawPolyLineAt(mPoints.get(i), mPoints.get(i + 1));
             mPolyLines.add(polyline);
         }
     }
 
 
-    private Polyline drawPolyLineAt(LatLng start, LatLng end){
+    private Polyline drawPolyLineAt(LatLng start, LatLng end) {
         Polyline polyline = null;
-        if(mMap != null){
+        if (mMap != null) {
             polyline = mMap.addPolyline(new PolylineOptions().color(Color.BLACK).add(start, end));
         }
         return polyline;
     }
 
-    private Marker drawMarkerAtLatLng(LatLng latLng){
+    private Marker drawMarkerAtLatLng(LatLng latLng) {
         Marker marker = null;
 
         Bitmap smallMarker = null;
-        if(draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
+        if (draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
             int height = 50;
             int width = 50;
             BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.mipmap_round_marker);
             Bitmap b = bitmapdraw.getBitmap();
             smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
         }
-        if(draw_type ==  MAP_DRAW_TYPE.DRAW_POINT){
+        if (draw_type == MAP_DRAW_TYPE.DRAW_POINT) {
             int height = 100;
             int width = 100;
             BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.map_marker);
@@ -765,11 +770,11 @@ public class MapActivity extends AppCompatActivity implements
             smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
         }
 
-        if(mMap != null){
+        if (mMap != null) {
             marker = mMap.addMarker(new MarkerOptions().position(latLng));
-            if(smallMarker != null) {
+            if (smallMarker != null) {
                 marker.setIcon(BitmapDescriptorFactory.fromBitmap(smallMarker));
-                if(draw_type ==  MAP_DRAW_TYPE.DRAW_LINE) {
+                if (draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
                     marker.setAnchor(0.5f, 0.5f);
                 }
             }
@@ -778,8 +783,8 @@ public class MapActivity extends AppCompatActivity implements
         return marker;
     }
 
-    private void saveMapData(String filepath){
-        if(mPoints.isEmpty()){
+    private void saveMapData(String filepath) {
+        if (mPoints.isEmpty()) {
             return;
         }
 
@@ -788,12 +793,12 @@ public class MapActivity extends AppCompatActivity implements
         ArrayList<Position> polyLineMarkerPositionList = new ArrayList<>();
         ArrayList<Position> centerMarkerPositionList = new ArrayList<>();
 
-        for(LatLng latLng:mPoints){
+        for (LatLng latLng : mPoints) {
             Position position = new Position(latLng.latitude, latLng.longitude);
             polyLineMarkerPositionList.add(position);
         }
 
-        for(LatLng latLng:mCenterPoints){
+        for (LatLng latLng : mCenterPoints) {
             Position position = new Position(latLng.latitude, latLng.longitude);
             centerMarkerPositionList.add(position);
         }
@@ -823,12 +828,12 @@ public class MapActivity extends AppCompatActivity implements
         }
 
         Log.d(TAG, "isSharedFile " + isSharedFile);
-        if(mapObjects != null) {
+        if (mapObjects != null) {
             File file;
-            if(!isSharedFile) {
+            if (!isSharedFile) {
                 file = getCreatedRouteFileObject(filepath);
                 writeToFile(file.getAbsolutePath(), mapObjects.toString());
-            }else if(isSharedFile) {
+            } else if (isSharedFile) {
                 file = getSharedRouteFileObject(filepath);
                 writeToFile(file.getAbsolutePath(), mapObjects.toString());
             }
@@ -853,7 +858,7 @@ public class MapActivity extends AppCompatActivity implements
 
     @Override
     public void onCameraMove() {
-        if(mIsDrawMovableLine){
+        if (mIsDrawMovableLine) {
             drawMovableLine();
         }
     }
@@ -949,8 +954,8 @@ public class MapActivity extends AppCompatActivity implements
 
         } catch (Exception e) {
             e.printStackTrace();
-        }
-*/
+        }*/
+
         return mLastLocation;
     }
 
@@ -959,19 +964,23 @@ public class MapActivity extends AppCompatActivity implements
     public void onLocationChanged(Location location) {
         Log.d(TAG, "onLocationChanged : " + location.toString());
         mLastLocation = location;
-        if(mIsCameraNotMovedToCurrentLoc){
+        if (mIsCameraNotMovedToCurrentLoc) {
             moveCameraToCurrentLocation();
+            zoomToRoute(); //FIXME: this is temporary solution, need to fix
             mIsCameraNotMovedToCurrentLoc = false;
         }
-        if(isRecordRoute) {
-            if(mIsRecodrdingStarted) {
+        if (isRecordRoute) {
+            if (mIsRecodrdingStarted) {
+                if (mPoints.size() <= 0) {
+                    flag = 1;
+                }
                 if (flag == 1) {
                     mSavedLocation = mLastLocation;
                     drawRecordedLines(new LatLng(mSavedLocation.getLatitude(), mSavedLocation.getLongitude()));
                     flag = 2;
                 } else {
                     float dist = mSavedLocation.distanceTo(mLastLocation);
-                    Log.d(TAG, "distance : " + dist);
+                    Log.d(TAG, "distance : " + dist + " mMinRecordDistance: " + mMinRecordDistance);
                     if (dist >= mMinRecordDistance) {
                         //drawMarkerAtLatLng(new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude()));
                         mSavedLocation = mLastLocation;
@@ -1004,35 +1013,36 @@ public class MapActivity extends AppCompatActivity implements
         switch (item.getItemId()) {
             case R.id.action_menu_done:
                 Log.d(TAG, "Done button clicked.......");
-                if(incomingFileName != null){
+                if (incomingFileName != null) {
                     Log.d(TAG, "incomingFileName " + incomingFileName);
                     saveMapData(incomingFileName);
                     layout.hide();
                     item.setVisible(false);
-                }else{
-                    if(isSharedFile){
+                } else {
+                    if (isSharedFile) {
                         showSaveDialog();
                     }
                 }
                 break;
             case R.id.map_menu_help:
-                Intent intent =  new Intent(this, HelpActivity.class);
+                Intent intent = new Intent(this, HelpActivity.class);
                 startActivity(intent);
                 break;
 
         }
-        return  true;
+        return true;
     }
 
 
     /////////////////////////
+
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
      * Framework Documents, as well as the _data field for the MediaStore and
      * other file-based ContentProviders.
      *
      * @param context The context.
-     * @param uri The Uri to query.
+     * @param uri     The Uri to query.
      * @author paulburke
      */
     @TargetApi(Build.VERSION_CODES.KITKAT)
@@ -1079,7 +1089,7 @@ public class MapActivity extends AppCompatActivity implements
                 }
 
                 final String selection = "_id=?";
-                final String[] selectionArgs = new String[] {
+                final String[] selectionArgs = new String[]{
                         split[1]
                 };
 
@@ -1102,9 +1112,9 @@ public class MapActivity extends AppCompatActivity implements
      * Get the value of the data column for this Uri. This is useful for
      * MediaStore Uris, and other file-based ContentProviders.
      *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @param selection (Optional) Filter used in the query.
+     * @param context       The context.
+     * @param uri           The Uri to query.
+     * @param selection     (Optional) Filter used in the query.
      * @param selectionArgs (Optional) Selection arguments used in the query.
      * @return The value of the _data column, which is typically a file path.
      */

@@ -15,7 +15,6 @@ public class ShareRoute extends Application {
         super.onCreate();
         instance = this;
         context = getApplicationContext();
-
     }
 
     public static ShareRoute getInstance() {

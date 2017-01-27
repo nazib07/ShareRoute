@@ -36,7 +36,7 @@ public class DetailsActivity extends AppCompatActivity {
 
         TextView textView = (TextView) findViewById(R.id.textView1);
 
-        if(CommonUtils.INTENT_ACTION_CUSTOM_1.equals(intentAction)) {
+        if (CommonUtils.INTENT_ACTION_CUSTOM_1.equals(intentAction)) {
             Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
             incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
             if (incomingFileName != null) {
@@ -44,8 +44,7 @@ public class DetailsActivity extends AppCompatActivity {
                 incomingFileName += ".geojson";
             }
             isShared = false;
-        }
-        else if(CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)){
+        } else if (CommonUtils.INTENT_ACTION_CUSTOM_2.equals(intentAction)) {
             Log.d(TAG, "Incoming intent extra " + intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME));
             incomingFileName = intent.getStringExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME);
             if (incomingFileName != null) {
@@ -66,7 +65,7 @@ public class DetailsActivity extends AppCompatActivity {
                 Intent sendIntent = new Intent();
                 sendIntent.setAction(Intent.ACTION_SEND);
                 sendIntent.setType("*/*");
-                sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://"+file.getAbsolutePath()));
+                sendIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + file.getAbsolutePath()));
                 startActivity(sendIntent);
             }
         });
@@ -84,16 +83,16 @@ public class DetailsActivity extends AppCompatActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.action_delete:
-                if(isShared){
+                if (isShared) {
                     deleteSharedNewRouteFile(incomingFileName);
                     onBackPressed();
-                }else{
+                } else {
                     deleteCreatedNewRouteFile(incomingFileName);
                     onBackPressed();
                 }
                 return true;
             case R.id.action_help:
-                Intent intent =  new Intent(this, HelpActivity.class);
+                Intent intent = new Intent(this, HelpActivity.class);
                 startActivity(intent);
                 return true;
             default:

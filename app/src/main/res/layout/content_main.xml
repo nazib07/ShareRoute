@@ -13,8 +13,8 @@
     tools:showIn="@layout/app_bar_main">
 
     <FrameLayout
+        android:id="@+id/flFragments"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_weight="1"
-        android:id="@+id/flFragments"/>
+        android:layout_weight="1" />
 </RelativeLayout>

@@ -10,9 +10,9 @@
     <!-- SEARCH -->
     <item
         android:id="@+id/action_search"
-        android:orderInCategory="100"
         android:icon="@drawable/ic_search_white_24dp"
+        android:orderInCategory="100"
         android:title="Search"
         app:actionViewClass="android.support.v7.widget.SearchView"
-        app:showAsAction="ifRoom|collapseActionView"/>
+        app:showAsAction="ifRoom|collapseActionView" />
 </menu>

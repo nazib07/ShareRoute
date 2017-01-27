@@ -1,5 +1,6 @@
 package shareroute.nazib.com.shareroute;
 
+import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -18,13 +19,17 @@ import static shareroute.nazib.com.shareroute.FileUtils.deleteSharedNewRouteFile
 
 public class SettingsActivity extends AppCompatActivity {
 
+    private Context context;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        context = this;
 
-        ArrayList<String> list = new ArrayList<>();
+        final ArrayList<String> list = new ArrayList<>();
         list.add("Clear All Routes");
+        list.add("Tune Record Distance");
         ListView listView = (ListView) findViewById(R.id.setting_listview);
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, list);
         listView.setAdapter(adapter);
@@ -32,9 +37,14 @@ public class SettingsActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                deleteAllCretedRoteFile();
-                deleteAllSharedRoteFile();
-                onBackPressed();
+                if (list.get(i).equals("Clear All Routes")) {
+                    deleteAllCretedRoteFile();
+                    deleteAllSharedRoteFile();
+                    onBackPressed();
+                } else if (list.get(i).equals("Tune Record Distance")) {
+                    SliderDialog sliderDialog = new SliderDialog(context);
+                    sliderDialog.show();
+                }
             }
         });
 
@@ -61,7 +71,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.menu_help) {
-            Intent intent =  new Intent(this, HelpActivity.class);
+            Intent intent = new Intent(this, HelpActivity.class);
             startActivity(intent);
             return true;
         }

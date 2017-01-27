@@ -4,6 +4,7 @@ package shareroute.nazib.com.shareroute;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -49,6 +50,8 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         context = this;
+//Save distance tuner value in preference
+        CommonUtils.setTunerValueInPreference(context, CommonUtils.DEFAULT_DISTANCE_TUNER_VALUE);
 
         FileUtils.setContext(context);
 
@@ -90,6 +93,7 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -116,7 +120,7 @@ public class MainActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.menu_help) {
-            Intent intent =  new Intent(this, HelpActivity.class);
+            Intent intent = new Intent(this, HelpActivity.class);
             startActivity(intent);
             return true;
         }
@@ -138,10 +142,10 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.nav_create_route) {
             createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT);
 
-        }else if(id == R.id.nav_record_route){
+        } else if (id == R.id.nav_record_route) {
             Log.d("[SHARE_ROUTE]", "nav record route");
             createAddRouteDialog(ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD);
-        }else if (id == R.id.nav_created_by_me) {
+        } else if (id == R.id.nav_created_by_me) {
             fragment = new CreatedRouteFragment();
             transaction.replace(R.id.flFragments, fragment);
             transaction.commit();
@@ -162,7 +166,6 @@ public class MainActivity extends AppCompatActivity
             Intent intent = new Intent(context, HelpActivity.class);
             context.startActivity(intent);
         }
-
 
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -191,21 +194,20 @@ public class MainActivity extends AppCompatActivity
 
                             String route_name;
                             route_name = editText.getText().toString();
-                            if(route_name.length() > 0){
-                                createNewRouteFile(route_name+".geojson");
+                            if (route_name.length() > 0) {
+                                createNewRouteFile(route_name + ".geojson");
                                 Intent intent = new Intent(context, MapActivity.class);
-                                if(mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT) {
+                                if (mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_EDIT) {
                                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_1);
-                                }else if(mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD){
+                                } else if (mode == ROUTE_CREATION_MODE.ROUTE_CREATION_MODE_RECORD) {
                                     intent.setAction(CommonUtils.INTENT_ACTION_CUSTOM_3);
                                 }
                                 intent.putExtra(CommonUtils.SELECTED_ROUTE_FILE_NAME, route_name);
                                 context.startActivity(intent);
                             }
 
-                            }
-                        catch (Exception e){
-                                e.printStackTrace();
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
                     }
                 })
@@ -217,12 +219,11 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onResume()
-    {  // After a pause OR at startup
+    public void onResume() {  // After a pause OR at startup
         Log.d("[SHARE_ROUTE]", "onResume MainActivity");
         super.onResume();
         //Refresh your stuff here
-        if(fragment != null){
+        if (fragment != null) {
             fragment.onResume();
         }
     }

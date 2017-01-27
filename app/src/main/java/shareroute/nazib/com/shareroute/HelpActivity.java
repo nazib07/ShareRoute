@@ -54,7 +54,7 @@ public class HelpActivity extends AppCompatActivity {
                 "<p><a href=\"mailto:nazib.cse@gmail.com\">nazib.cse@gmail.com</a></p>\n" +
                 "<p><strong>&nbsp;</strong></p>";
 
-        TextView textView = (TextView)findViewById(R.id.textView2);
+        TextView textView = (TextView) findViewById(R.id.textView2);
         textView.setText(Html.fromHtml(str));
     }
 }

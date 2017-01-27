@@ -3,15 +3,16 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <item android:id="@+id/action_menu_done"
-        android:title="DONE"
-        android:orderInCategory="100"
+    <item
+        android:id="@+id/action_menu_done"
         android:icon="@drawable/ic_done_white_24dp"
-        app:showAsAction="ifRoom"
-        />
+        android:orderInCategory="100"
+        android:title="DONE"
+        app:showAsAction="ifRoom" />
     <!-- Settings, should always be in the overflow -->
-    <item android:id="@+id/map_menu_help"
+    <item
+        android:id="@+id/map_menu_help"
         android:title="Help"
-        app:showAsAction="never"/>
+        app:showAsAction="never" />
 
 </menu>

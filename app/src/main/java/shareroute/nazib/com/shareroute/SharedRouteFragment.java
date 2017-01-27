@@ -35,7 +35,7 @@ public class SharedRouteFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View v = inflater.inflate(R.layout.fragment_list_demo, container, false);
-        lstItems = (ListView)v.findViewById(R.id.listView);
+        lstItems = (ListView) v.findViewById(R.id.listView);
         lstItems.setTextFilterEnabled(true);
 
         fillListView(lstItems);
@@ -45,7 +45,7 @@ public class SharedRouteFragment extends Fragment {
     private void fillListView(ListView lstItems) {
         sharedRouteNames = getSharedRouteNames();
         Log.d("[SHARE_ROUTE]", "Shared fragment fillListView" + sharedRouteNames.toString());
-        if(sharedRouteNames != null) {
+        if (sharedRouteNames != null) {
             //CustomAdapter adapter = new CustomAdapter(this, sharedRouteNames);
             adapter = new RouteListAdapter(this, sharedRouteNames);
             lstItems.setAdapter(adapter);
@@ -69,7 +69,7 @@ public class SharedRouteFragment extends Fragment {
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.action_search));
         searchView.setQueryHint("Search here");
 
-        ((EditText)searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text))
+        ((EditText) searchView.findViewById(android.support.v7.appcompat.R.id.search_src_text))
                 .setHintTextColor(getResources().getColor(R.color.colorAccent));
         searchView.setOnQueryTextListener(OnQuerySearchView);
 
@@ -82,6 +82,7 @@ public class SharedRouteFragment extends Fragment {
             // TODO Auto-generated method stub
             return false;
         }
+
         @Override
         public boolean onQueryTextChange(String newText) {
             // TODO Auto-generated method stub
@@ -113,7 +114,7 @@ public class SharedRouteFragment extends Fragment {
         super.onResume();
 
         fillListView(lstItems);
-        
+
     }
 
 }

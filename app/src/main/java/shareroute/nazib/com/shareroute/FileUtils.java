@@ -26,29 +26,30 @@ import static shareroute.nazib.com.shareroute.CommonUtils.createAlert;
 
 public class FileUtils {
     private static Context context;
-    FileUtils(){
+
+    FileUtils() {
 //        context = ShareRoute.getInstance().getAppContext(); // This should be fixed later // FIXME: 1/8/17
     }
 
-    public static void setContext(Context ctx){
+    public static void setContext(Context ctx) {
         context = ctx;
     }
 
     public static void createDir() {
 
-        if(context != null) {
+        if (context != null) {
             Log.d("[SHARE_ROUTE]", context.getDir("Test", Context.MODE_PRIVATE).toString());
-        }else{
+        } else {
             Log.d("[SHARE_ROUTE]", "context is null");
         }
     }
 
-    private static File createDirInsideExternalAppDir(String dirName){
+    private static File createDirInsideExternalAppDir(String dirName) {
         Log.d("SHARE_ROUTE", "createDirInsideExternalDataDir");
         return context.getExternalFilesDir(dirName);
     }
 
-    public static File createNewRouteFile(String filename){
+    public static File createNewRouteFile(String filename) {
         File folder = createDirInsideExternalAppDir("CreatedRoute");
         File file = new File(folder.getAbsolutePath(), filename);
         if (!file.exists()) {
@@ -57,17 +58,17 @@ public class FileUtils {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else {
-           createAlert(context, "Route already exist, choose different name");
+        } else {
+            createAlert(context, "Route already exist, choose different name");
         }
 
         return file;
     }
 
-    public static void deleteCreatedNewRouteFile(String filename){
+    public static void deleteCreatedNewRouteFile(String filename) {
         ArrayList<File> filelist = getCreatedRouteFileList();
-        for(File file : filelist){
-            if(file.getName().equals(filename)){
+        for (File file : filelist) {
+            if (file.getName().equals(filename)) {
                 file.delete();
             }
         }
@@ -78,31 +79,29 @@ public class FileUtils {
         return new File(folder.getAbsolutePath(), filename);
     }
 
-    public static ArrayList<File> getCreatedRouteFileList(){
+    public static ArrayList<File> getCreatedRouteFileList() {
         ArrayList<File> filelist = new ArrayList<>();
         File folder = createDirInsideExternalAppDir("CreatedRoute");
 
         File[] files = folder.listFiles();
 
-        for (File file : files)
-        {
-            if(file.getName().endsWith(".geojson"))
-            {
+        for (File file : files) {
+            if (file.getName().endsWith(".geojson")) {
                 filelist.add(file);
             }
         }
-        return  filelist;
+        return filelist;
     }
 
-    public static ArrayList<String> getCreatedRouteNames(){
+    public static ArrayList<String> getCreatedRouteNames() {
         ArrayList<String> namelist = new ArrayList<>();
         String ext = ".geojson";
 
         ArrayList<File> filelist = getCreatedRouteFileList();
-        for(File file : filelist){
+        for (File file : filelist) {
             String filename = file.getName();
-            String trimmed_filename = filename.substring(0,filename.length() - ext.length());
-            Log.d("SHARE_ROUTE", "file name " +trimmed_filename);
+            String trimmed_filename = filename.substring(0, filename.length() - ext.length());
+            Log.d("SHARE_ROUTE", "file name " + trimmed_filename);
             namelist.add(trimmed_filename);
         }
 
@@ -112,7 +111,7 @@ public class FileUtils {
     ///////////////////////////////////Share Route Dir/////////////////////////////
 
 
-    public static File createSharedRouteFile(String filename){
+    public static File createSharedRouteFile(String filename) {
         File folder = createDirInsideExternalAppDir("SharedRoute");
         File file = new File(folder.getAbsolutePath(), filename);
         if (!file.exists()) {
@@ -121,7 +120,7 @@ public class FileUtils {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }else {
+        } else {
             createAlert(context, "Route already exist, choose different name");
         }
 
@@ -129,25 +128,25 @@ public class FileUtils {
     }
 
 
-    public static void deleteAllCretedRoteFile(){
+    public static void deleteAllCretedRoteFile() {
         ArrayList<File> filelist = getCreatedRouteFileList();
-        for (File file : filelist){
+        for (File file : filelist) {
             file.delete();
         }
     }
 
-    public static void deleteAllSharedRoteFile(){
+    public static void deleteAllSharedRoteFile() {
         ArrayList<File> filelist = getSharedRouteFileList();
-        for (File file : filelist){
+        for (File file : filelist) {
             file.delete();
         }
     }
 
 
-    public static void deleteSharedNewRouteFile(String filename){
+    public static void deleteSharedNewRouteFile(String filename) {
         ArrayList<File> filelist = getSharedRouteFileList();
-        for(File file : filelist){
-            if(file.getName().equals(filename)){
+        for (File file : filelist) {
+            if (file.getName().equals(filename)) {
                 file.delete();
             }
         }
@@ -158,31 +157,29 @@ public class FileUtils {
         return new File(folder.getAbsolutePath(), filename);
     }
 
-    public static ArrayList<File> getSharedRouteFileList(){
+    public static ArrayList<File> getSharedRouteFileList() {
         ArrayList<File> filelist = new ArrayList<>();
         File folder = createDirInsideExternalAppDir("SharedRoute");
 
         File[] files = folder.listFiles();
 
-        for (File file : files)
-        {
-            if(file.getName().endsWith(".geojson"))
-            {
+        for (File file : files) {
+            if (file.getName().endsWith(".geojson")) {
                 filelist.add(file);
             }
         }
-        return  filelist;
+        return filelist;
     }
 
-    public static ArrayList<String> getSharedRouteNames(){
+    public static ArrayList<String> getSharedRouteNames() {
         ArrayList<String> namelist = new ArrayList<>();
         String ext = ".geojson";
 
         ArrayList<File> filelist = getSharedRouteFileList();
-        for(File file : filelist){
+        for (File file : filelist) {
             String filename = file.getName();
-            String trimmed_filename = filename.substring(0,filename.length() - ext.length());
-            Log.d("SHARE_ROUTE", "file name " +trimmed_filename);
+            String trimmed_filename = filename.substring(0, filename.length() - ext.length());
+            Log.d("SHARE_ROUTE", "file name " + trimmed_filename);
             namelist.add(trimmed_filename);
         }
 
@@ -193,7 +190,7 @@ public class FileUtils {
     ///////////////////////////////////////////////////////////////////////////////
 
 
-    public static void writeToFile(String filepath, String data){
+    public static void writeToFile(String filepath, String data) {
         FileOutputStream stream = null;
         try {
             stream = new FileOutputStream(new File(filepath));
@@ -202,7 +199,7 @@ public class FileUtils {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             try {
                 stream.close();
             } catch (Exception e) {
@@ -211,7 +208,7 @@ public class FileUtils {
         }
     }
 
-    public static String readFromFile(String filepath){
+    public static String readFromFile(String filepath) {
         String data = null;
         File file = new File(filepath);
         int length = (int) file.length();
@@ -222,8 +219,7 @@ public class FileUtils {
             in.read(bytes);
         } catch (Exception e) {
             e.printStackTrace();
-        }
-        finally {
+        } finally {
             try {
                 in.close();
             } catch (Exception e) {

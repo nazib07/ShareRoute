@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.View;
 
 
-
 public class DottedCircleView extends View {
 
     private int radius;
@@ -25,15 +24,16 @@ public class DottedCircleView extends View {
     private int pinYOffset;
     private float DASH_INTERVAL = .5f;
 
-    public DottedCircleView(Context context){
+    public DottedCircleView(Context context) {
         super(context);
-        color=getResources().getColor(R.color.colorPrimary);
+        color = getResources().getColor(R.color.colorPrimary);
         radius = 50;
         setup();
     }
+
     public DottedCircleView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        color=getResources().getColor(R.color.colorPrimary);
+        color = getResources().getColor(R.color.colorPrimary);
         radius = 50;
         setup();
     }

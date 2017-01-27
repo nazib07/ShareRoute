@@ -29,6 +29,7 @@ public class TestFragment_1 extends Fragment {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_library, container, false);
     }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -59,6 +60,7 @@ public class TestFragment_1 extends Fragment {
             // TODO Auto-generated method stub
             return false;
         }
+
         @Override
         public boolean onQueryTextChange(String arg0) {
             // TODO Auto-generated method stub
@@ -78,16 +80,14 @@ public class TestFragment_1 extends Fragment {
             /** EDIT **/
             case R.id.frag_menu:
                 //openEditProfile(); //Open Edit Profile Fragment
-                Log.d( "NAZIB", "frag menu");
+                Log.d("NAZIB", "frag menu");
                 return true;
-
 
 
             default:
                 return super.onOptionsItemSelected(item);
         }//end switch
     }//end onOptionsItemSelected
-
 
 
 }

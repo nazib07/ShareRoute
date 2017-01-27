@@ -37,7 +37,7 @@ public abstract class PermissionUtils {
      * be shown to the user, displays a dialog that triggers the request.
      */
     public static void requestPermission(AppCompatActivity activity, int requestId,
-            String permission, boolean finishActivity) {
+                                         String permission, boolean finishActivity) {
         if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
             // Display a dialog with rationale.
             RationaleDialog.newInstance(requestId, finishActivity, permission)
@@ -56,7 +56,7 @@ public abstract class PermissionUtils {
      * @see ActivityCompat.OnRequestPermissionsResultCallback
      */
     public static boolean isPermissionGranted(String[] grantPermissions, int[] grantResults,
-            String permission) {
+                                              String permission) {
         for (int i = 0; i < grantPermissions.length; i++) {
             if (permission.equals(grantPermissions[i])) {
                 return grantResults[i] == PackageManager.PERMISSION_GRANTED;
@@ -121,7 +121,7 @@ public abstract class PermissionUtils {
         private static final String ARGUMENT_PERMISSION_REQUEST_CODE = "requestCode";
 
         private static final String ARGUMENT_FINISH_ACTIVITY = "finish";
-        private static final String ARGUMENT_PERMISSION_STRING  = "permission";
+        private static final String ARGUMENT_PERMISSION_STRING = "permission";
 
         private boolean mFinishActivity = false;
 
@@ -141,7 +141,7 @@ public abstract class PermissionUtils {
             Bundle arguments = new Bundle();
             arguments.putInt(ARGUMENT_PERMISSION_REQUEST_CODE, requestCode);
             arguments.putBoolean(ARGUMENT_FINISH_ACTIVITY, finishActivity);
-            arguments.putString(ARGUMENT_PERMISSION_STRING,  permission);
+            arguments.putString(ARGUMENT_PERMISSION_STRING, permission);
             RationaleDialog dialog = new RationaleDialog();
             dialog.setArguments(arguments);
             return dialog;

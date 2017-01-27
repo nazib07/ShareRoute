@@ -3,6 +3,8 @@ package shareroute.nazib.com.shareroute;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -10,12 +12,28 @@ import android.widget.Toast;
  */
 
 public class CommonUtils {
-    public final static String SELECTED_ROUTE_FILE_NAME =  "SELECTED_ROUTE_FILE_NAME";
+    public final static String SELECTED_ROUTE_FILE_NAME = "SELECTED_ROUTE_FILE_NAME";
     public final static String INTENT_ACTION_CUSTOM_1 = "INTENT_ACTION_CUSTOM_1";
     public final static String INTENT_ACTION_CUSTOM_2 = "INTENT_ACTION_CUSTOM_2";
     public final static String INTENT_ACTION_CUSTOM_3 = "INTENT_ACTION_CUSTOM_3";
+    public static final String SHAREROUTE_PREFS_NAME = "SHARE_ROUTE";
+    public static final String DISTANCE_TUNER_VALUE = "distance_tuner_value";
+    public static final int DEFAULT_DISTANCE_TUNER_VALUE = 15;
 
-    public static void createAlert(final Context context, String message){
+    public static int getTunerValueFromPreference(Context context) {
+        SharedPreferences prefs = context.getSharedPreferences(CommonUtils.SHAREROUTE_PREFS_NAME, context.MODE_PRIVATE);
+        int restoredText = prefs.getInt(CommonUtils.DISTANCE_TUNER_VALUE, CommonUtils.DEFAULT_DISTANCE_TUNER_VALUE);
+        return restoredText;
+    }
+
+    public static void setTunerValueInPreference(Context context, int value) {
+        SharedPreferences.Editor editor = context.getSharedPreferences(CommonUtils.SHAREROUTE_PREFS_NAME, context.MODE_PRIVATE).edit();
+        editor.putInt(CommonUtils.DISTANCE_TUNER_VALUE, value);
+        editor.commit();
+    }
+
+
+    public static void createAlert(final Context context, String message) {
         AlertDialog alertDialog = new AlertDialog.Builder(
                 context).create();
 
