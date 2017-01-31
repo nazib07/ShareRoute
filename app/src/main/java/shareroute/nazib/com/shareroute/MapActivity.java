@@ -2,6 +2,7 @@ package shareroute.nazib.com.shareroute;
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -73,7 +74,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.List;
 
 import static shareroute.nazib.com.shareroute.FileUtils.createSharedRouteFile;
 import static shareroute.nazib.com.shareroute.FileUtils.getCreatedRouteFileObject;
@@ -283,6 +287,8 @@ public class MapActivity extends AppCompatActivity implements
             if (intent != null) {
                 mExternalDataIntent = intent;
 
+                String fileName = getContentName(getContentResolver(), intent.getData());
+                Log.d(TAG, "gmail file name: "+ fileName);
                 ////////////////////////////////////////////////////
                 isSharedFile = true;
                 showSaveDialog();
@@ -291,6 +297,18 @@ public class MapActivity extends AppCompatActivity implements
             }
         }
     }
+
+    private String getContentName(ContentResolver resolver, Uri uri){
+        Cursor cursor = resolver.query(uri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null);
+        cursor.moveToFirst();
+        int nameIndex = cursor.getColumnIndex(cursor.getColumnNames()[0]);
+        if (nameIndex >= 0) {
+            return cursor.getString(nameIndex);
+        } else {
+            return null;
+        }
+    }
+
 
     private void zoomToRoute() {
         if (mMap != null) {
@@ -342,6 +360,97 @@ public class MapActivity extends AppCompatActivity implements
     }
 
 
+    private String downloadFileAndGetPath(Intent intent) {
+
+        InputStream is = null;
+        FileOutputStream os = null;
+        String fullPath = null;
+
+        try {
+            String action = intent.getAction();
+            if (!Intent.ACTION_VIEW.equals(action)) {
+                return null;
+            }
+
+            Uri uri = intent.getData();
+            String scheme = uri.getScheme();
+            String name = null;
+
+            if (scheme.equals("file")) {
+                List<String> pathSegments = uri.getPathSegments();
+                if (pathSegments.size() > 0) {
+                    name = pathSegments.get(pathSegments.size() - 1);
+                }
+            } else if (scheme.equals("content")) {
+                Cursor cursor = getContentResolver().query(uri, new String[]{
+                        MediaStore.MediaColumns.DISPLAY_NAME
+                }, null, null, null);
+                cursor.moveToFirst();
+                int nameIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    name = cursor.getString(nameIndex);
+                }
+            } else {
+                return null;
+            }
+
+            if (name == null) {
+                return null;
+            }
+
+            int n = name.lastIndexOf(".");
+            String fileName, fileExt;
+
+            if (n == -1) {
+                return null;
+            } else {
+                fileName = name.substring(0, n);
+                fileExt = name.substring(n);
+                if (!fileExt.equals(".geojson")) {
+                    return null;
+                }
+            }
+
+            fullPath = "/storage/emulated/0/Download/" + name;/* create full path to where the file is to go, including name/ext */
+
+            Log.d(TAG, "full path " + fullPath);
+
+            File tempfile = File.createTempFile("temp_data", "geojson");
+            tempfile.deleteOnExit();
+
+            is = getContentResolver().openInputStream(uri);
+            os = new FileOutputStream(tempfile);
+
+            byte[] buffer = new byte[4096];
+            int count;
+            while ((count = is.read(buffer)) > 0) {
+                os.write(buffer, 0, count);
+            }
+
+            os.close();
+            is.close();
+            return fullPath;
+        } catch (Exception e) {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (Exception e1) {
+                }
+            }
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (Exception e1) {
+                }
+            }
+            if (fullPath != null) {
+                File f = new File(fullPath);
+                f.delete();
+            }
+        }
+        return null;
+    }
+
     private void loadDataFromExternalFile(Intent intent) {
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -352,7 +461,14 @@ public class MapActivity extends AppCompatActivity implements
         } else {
             Uri uri = intent.getData();
             String sharedFileName = getPath(context, uri);
-            Log.d(TAG, "uri= " + getPath(context, uri));
+            if(sharedFileName == null){
+                sharedFileName = downloadFileAndGetPath(intent);
+            }
+            Log.d(TAG, "uri= " + sharedFileName);
+
+            if(sharedFileName == null){
+                return;
+            }
             loadMapData(sharedFileName);
 
             //

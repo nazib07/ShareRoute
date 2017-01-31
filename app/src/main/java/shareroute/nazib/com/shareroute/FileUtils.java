@@ -46,6 +46,10 @@ public class FileUtils {
 
     private static File createDirInsideExternalAppDir(String dirName) {
         Log.d("SHARE_ROUTE", "createDirInsideExternalDataDir");
+        if(context == null){
+            Log.d("[SHARE_ROUTE]", "context is null");
+            return null;
+        }
         return context.getExternalFilesDir(dirName);
     }
 
