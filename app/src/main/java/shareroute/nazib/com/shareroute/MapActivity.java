@@ -107,7 +107,7 @@ public class MapActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener,
         LocationListener,
         GoogleMap.OnMyLocationButtonClickListener,
-        ActivityCompat.OnRequestPermissionsResultCallback {
+        ActivityCompat.OnRequestPermissionsResultCallback, GoogleMap.OnMarkerDragListener, GoogleMap.OnMarkerClickListener {
     private static final String TAG = "[SHARE_ROUTE]";
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 1;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 2;
@@ -147,6 +147,7 @@ public class MapActivity extends AppCompatActivity implements
     private boolean mIsCameraNotMovedToCurrentLoc;
     private float mMinRecordDistance = CommonUtils.DEFAULT_DISTANCE_TUNER_VALUE;
     private boolean isMoveToCurrentLocation;
+    private int idx;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -503,6 +504,8 @@ public class MapActivity extends AppCompatActivity implements
         mMap.setOnCameraMoveStartedListener(this);
         mMap.setOnCameraMoveListener(this);
         mMap.setOnCameraMoveCanceledListener(this);
+        mMap.setOnMarkerDragListener(this);
+        mMap.setOnMarkerClickListener(this);
 
         enableMyLocation();
 
@@ -858,6 +861,16 @@ public class MapActivity extends AppCompatActivity implements
         }
     }
 
+    private int getMarkerIndexOnPolyline(Marker marker){
+        int index = -1;
+        for(int i = 0; i<mPoints.size(); i++){
+            if(mPoints.get(i).equals(marker.getPosition())){
+                index = i;
+            }
+        }
+        return index;
+    }
+
 
     private Polyline drawPolyLineAt(LatLng start, LatLng end) {
         Polyline polyline = null;
@@ -872,9 +885,10 @@ public class MapActivity extends AppCompatActivity implements
 
         Bitmap smallMarker = null;
         if (draw_type == MAP_DRAW_TYPE.DRAW_LINE) {
-            int height = 50;
-            int width = 50;
-            BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.mipmap_round_marker);
+            int height = 70;
+            int width = 70;
+//            BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.mipmap_round_marker);
+            BitmapDrawable bitmapdraw = (BitmapDrawable) getResources().getDrawable(R.mipmap.black_circle);
             Bitmap b = bitmapdraw.getBitmap();
             smallMarker = Bitmap.createScaledBitmap(b, width, height, false);
         }
@@ -894,8 +908,10 @@ public class MapActivity extends AppCompatActivity implements
                     marker.setAnchor(0.5f, 0.5f);
                 }
             }
+            marker.setDraggable(true);
             marker.setVisible(true);
         }
+
         return marker;
     }
 
@@ -1313,6 +1329,42 @@ public class MapActivity extends AppCompatActivity implements
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
+    }
+
+    @Override
+    public void onMarkerDragStart(Marker marker) {
+        ArrayList<Marker>  mPolyLineMarkersClone = (ArrayList<Marker>) mPolyLineMarkers.clone();
+        for(int i=0; i<mPolyLineMarkersClone.size();i++)
+        {
+            if(mPolyLineMarkersClone.get(i).equals(marker)){
+                Log.d(TAG,"got you..:)");
+                idx = i;
+                Log.d(TAG, "idx: "+idx);
+            }else{
+                Log.d(TAG,"didn't get you.. :(");
+            }
+        }
+    }
+
+    @Override
+    public void onMarkerDrag(Marker marker) {
+    }
+
+    @Override
+    public void onMarkerDragEnd(Marker marker) {
+        mPoints.set(idx, marker.getPosition());
+        clearAllMarkersOnPolyline();
+        clearAllPolylines();
+
+        drawMarkersOnPolyline();
+        drawPolyLines();
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        idx = getMarkerIndexOnPolyline(marker);
+        Log.d(TAG, "idx: "+idx);
+        return false;
     }
     //////////////////////////
 
